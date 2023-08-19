@@ -1,10 +1,6 @@
 import argparse
-import os
-import random
-import string
 
-from config import PROJECT_NAME
-
+from constants import PROJECT_NAME
 from util import log
 
 

@@ -39,7 +39,10 @@ test:
 run_worker:
 	$(RUN_PY) executables.tgtg_worker
 
+create_account:
+	$(RUN_PY) executables.tgtg_api_setup
+
 clean:
 	rm -rf *.pickle
 
-.PHONY: init install format check_format mypy pylint autopep8 isort lint test run_worker clean
+.PHONY: init install format check_format mypy pylint autopep8 isort lint test run_worker create_account clean
