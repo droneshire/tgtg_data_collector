@@ -40,7 +40,7 @@ run_worker:
 	$(RUN_PY) executables.tgtg_worker
 
 create_account:
-	$(RUN_PY) executables.tgtg_api_setup
+	$(RUN_PY) executables.tgtg_api_setup --email $(email)
 
 clean:
 	rm -rf *.pickle
