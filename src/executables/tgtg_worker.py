@@ -18,7 +18,7 @@ def main() -> None:
     args = parse_args()
 
     log.setup_log(args.log_level, args.log_dir, PROJECT_NAME)
-    log.print_ok_blue("Creating new Avion Account...")
+    log.print_ok_blue("Starting TGTG data collection client...")
 
     run_loop(args)
 
