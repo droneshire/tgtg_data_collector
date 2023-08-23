@@ -1,4 +1,5 @@
 import argparse
+import dotenv
 import json
 import os
 import sys
@@ -18,7 +19,7 @@ def parse_args() -> argparse.Namespace:
         "--credentials-file",
         type=str,
         help="Credentials file store",
-        default=os.path.join(root_dir, "tgtg_credentials.json"),
+        default=os.path.join(root_dir, os.environ.get("TGTG_DEFAULT_CREDENTIALS_FILE", "tgtg_credentials.json")),
     )
     return parser.parse_args()
 
@@ -45,6 +46,7 @@ def create_account(email: str, credentials_file: str) -> None:
 
 def main() -> None:
     args = parse_args()
+    dotenv.load_dotenv(".env")
 
     log.print_ok_blue(f"Creating TGTG API account for {args.email}...")
 
