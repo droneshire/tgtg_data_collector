@@ -180,11 +180,14 @@ class FirebaseUser:
         searches = []
         with self.database_cache_lock:
             for user, info in self.database_cache.items():
-                regions = info["regions"]
-                if not regions:
+                items = info.get("searches", {}).get("items", [])
+                if not items:
                     continue
 
-                for region in regions:
+                for item in items:
+                    region = item.get("region", {})
+                    if not region:
+                        continue
                     log.print_ok_blue_arrow(f"Adding search for {user}: {json.dumps(region)}")
                     search_region = too_good_to_go_data_types.Region(
                         lattitude=region.get("lattitude", 0.0),

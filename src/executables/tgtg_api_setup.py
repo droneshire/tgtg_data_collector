@@ -1,9 +1,9 @@
 import argparse
-import dotenv
 import json
 import os
 import sys
 
+import dotenv
 from tgtg import TgtgClient
 
 from util import file_util, log
@@ -19,7 +19,9 @@ def parse_args() -> argparse.Namespace:
         "--credentials-file",
         type=str,
         help="Credentials file store",
-        default=os.path.join(root_dir, os.environ.get("TGTG_DEFAULT_CREDENTIALS_FILE", "tgtg_credentials.json")),
+        default=os.path.join(
+            root_dir, os.environ.get("TGTG_DEFAULT_CREDENTIALS_FILE", "tgtg_credentials.json")
+        ),
     )
     return parser.parse_args()
 

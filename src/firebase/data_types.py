@@ -12,18 +12,21 @@ class Email(T.TypedDict):
     updatesEnabled: bool
 
 
-class Sms(T.TypedDict):
-    phoneNumber: str
-    updatesEnabled: bool
-
-
 class Notifications(T.TypedDict):
     email: Email
-    sms: Sms
+
+
+class TimeZone(T.TypedDict):
+    abbrev: str
+    altName: str
+    label: str
+    offset: int
+    value: str
 
 
 class Preferences(T.TypedDict):
     notifications: Notifications
+    searchTimeZone: TimeZone
 
 
 class Region(T.TypedDict):
@@ -32,26 +35,36 @@ class Region(T.TypedDict):
     radius: int
 
 
+class Search(T.TypedDict):
+    name: str
+    region: Region
+
+
+class Searches(T.TypedDict):
+    searches: T.List[Search]
+    sendData: bool
+
+
 class User(T.TypedDict):
     preferences: Preferences
-    regions: T.List[Region]
+    searches: Searches
 
 
 NULL_USER = User(
     preferences=Preferences(
         notifications=Notifications(
             email=Email(email="", updatesEnabled=False),
-            sms=Sms(
-                phoneNumber="",
-                updatesEnabled=False,
-            ),
-        )
+        ),
+        searchTimeZone=TimeZone(
+            abbrev="PDT",
+            altName="Pacific Daylight Time",
+            label="(GMT-07:00) Pacific Time",
+            offset=-7,
+            value="America/Los_Angeles",
+        ),
     ),
-    regions=[
-        Region(
-            lattitude=0.0,
-            longitude=0.0,
-            radius=0,
-        )
-    ],
+    searches=Searches(
+        searches=[],
+        sendData=False,
+    ),
 )
