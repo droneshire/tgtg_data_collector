@@ -41,7 +41,7 @@ class Search(T.TypedDict):
 
 
 class Searches(T.TypedDict):
-    searches: T.List[Search]
+    items: T.List[Search]
     sendData: bool
 
 
@@ -64,7 +64,7 @@ NULL_USER = User(
         ),
     ),
     searches=Searches(
-        searches=[],
+        items=[],
         sendData=False,
     ),
 )

@@ -180,11 +180,11 @@ class FirebaseUser:
         searches = []
         with self.database_cache_lock:
             for user, info in self.database_cache.items():
-                items = info.get("searches", {}).get("items", [])
-                if not items:
+                search_items = info.get("searches", {}).get("items", [])
+                if not search_items:
                     continue
 
-                for item in items:
+                for item in search_items:
                     region = item.get("region", {})
                     if not region:
                         continue
