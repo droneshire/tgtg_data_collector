@@ -36,13 +36,13 @@ class Region(T.TypedDict):
 
 
 class Search(T.TypedDict):
-    name: str
     region: Region
+    sendEmail: bool
 
 
 class Searches(T.TypedDict):
     items: T.List[Search]
-    sendData: bool
+    hoursBetweenCollection: int
 
 
 class User(T.TypedDict):
@@ -65,6 +65,7 @@ NULL_USER = User(
     ),
     searches=Searches(
         items=[],
-        sendData=False,
+        hoursBetweenCollection=3,
+        collectionTimeStart=0,
     ),
 )
