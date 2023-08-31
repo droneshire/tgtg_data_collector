@@ -43,7 +43,7 @@ class Search(T.TypedDict):
 class Searches(T.TypedDict):
     items: T.List[Search]
     hoursBetweenCollection: int
-
+    collectionTimeStart: int
 
 class User(T.TypedDict):
     preferences: Preferences
