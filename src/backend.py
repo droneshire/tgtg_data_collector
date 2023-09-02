@@ -36,7 +36,7 @@ class TgtgCollectorBackend:
         timezone = pytz.timezone(search["time_zone"])
         now = datetime.datetime.now(tz=timezone)
 
-        if self.is_within_interval(
+        if not self.is_time_to_search(
             now, search["hour_start"], search["hour_interval"], search["last_search_time"], timezone
         ):
             log.print_warn("Not within interval, skipping")
@@ -59,7 +59,7 @@ class TgtgCollectorBackend:
         self.tgtg_manager.write_data_to_json(results, self.tgtg_data_json_file)
 
     @staticmethod
-    def is_within_interval(
+    def is_time_to_search(
         now: datetime.datetime,
         start_hour: int,
         interval_hour: int,
@@ -82,14 +82,18 @@ class TgtgCollectorBackend:
             log.print_normal(f"Current time: {now}")
             log.print_normal(f"Today start time: {start_time}")
             log.print_normal(f"Interval start time: {yesterday_start_time}")
+            log.print_normal(f"Last search time: {last_search_time_datetime}")
             log.print_normal(f"Interval: {interval_hour}")
             time_since_update = int(now.timestamp() - last_search_time)
             log.print_normal(f"Last search: {fmt_util.get_pretty_seconds(time_since_update)} ago")
-            log.print_normal(f"Last search time: {last_search_time_datetime}")
+            time_since_start_time = int(now.timestamp() - yesterday_start_time.timestamp())
+            log.print_normal(
+                f"Time since interval time: {fmt_util.get_pretty_seconds(time_since_start_time)}"
+            )
 
         if last_search_time_datetime > now:
             log.print_warn("Last search time is in the future, skipping")
-            return True
+            return False
 
         # assumes last search time is within the last 24 hours
         start_of_last_interval = None
@@ -110,16 +114,23 @@ class TgtgCollectorBackend:
             log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
             break
 
+        if start_of_last_interval is None:
+            return True
+
+        time_since_last_interval = int(now.timestamp() - start_of_last_interval.timestamp())
+        log.print_normal(
+            f"Last interval: {fmt_util.get_pretty_seconds(time_since_last_interval)} ago"
+        )
         if (
             start_of_last_interval is not None
             and last_search_time_datetime >= start_of_last_interval
         ):
             if verbose:
                 log.print_normal("Last search time is in the window, skipping")
-            return True
+            return False
 
         log.print_ok_arrow("Last search is stale, running search")
-        return False
+        return True
 
     def init(self) -> None:
         self.tgtg_manager.init()
