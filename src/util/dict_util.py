@@ -31,3 +31,16 @@ def safe_get(dictionary: T.Dict[T.Any, T.Any], keys: T.List[T.Any], default: T.A
     for key in keys:
         dictionary = dictionary.get(key, {})
     return dictionary if dictionary else default
+
+
+def flatten_dict(
+    dictionary: T.Dict[T.Any, T.Any], parent_key: str = "", sep: str = "."
+) -> T.Dict[T.Any, T.Any]:
+    items = {}
+    for key, value in dictionary.items():
+        new_key = f"{parent_key}{sep}{key}" if parent_key else key
+        if isinstance(value, dict):
+            items.update(flatten_dict(value, new_key, sep=sep))
+        else:
+            items[new_key] = value
+    return items

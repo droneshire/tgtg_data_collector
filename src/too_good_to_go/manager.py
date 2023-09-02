@@ -1,22 +1,28 @@
+import csv
+import datetime
 import json
 import os
 import typing as T
 
 from tgtg import TgtgClient
 
-from util import file_util, log
+from too_good_to_go import data_types
+from util import dict_util, file_util, log
 
 
 class TgtgManager:
     def __init__(self, email: str, credentials_file: str, allow_create: bool = False) -> None:
         self.credentials_file = credentials_file
         self.email = email
+        self.allow_create = allow_create
 
         self.client = TgtgClient(email=self.email)
+        self.credentials: T.Dict[str, T.Any] = {}
 
+    def init(self) -> None:
         self.credentials = self.load_credentials()
 
-        if not self.credentials and allow_create:
+        if not self.credentials and self.allow_create:
             self.credentials = self.create_account()
 
     def save_credentials(self, credentials: T.Dict[str, T.Any]) -> None:
@@ -79,3 +85,41 @@ class TgtgManager:
         log.print_bright(f"{json.dumps(credentials, indent=4)}")
 
         return credentials
+
+    def search_region(self, region: data_types.Region) -> data_types.GetItemResponse:
+        data = self.client.get_items(
+            favorites_only=False,
+            latitude=region["latitude"],
+            longitude=region["longitude"],
+            radius=region["radius"],
+        )
+
+        return T.cast(data_types.GetItemResponse, data)
+
+    def write_data_to_json(
+        self, get_item_response: data_types.GetItemResponse, json_file: str
+    ) -> None:
+        if os.path.exists(json_file):
+            with open(json_file, "r", encoding="utf-8") as infile:
+                data = json.load(infile)
+        else:
+            data = {}
+
+        date_formated = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+        data[date_formated] = get_item_response
+
+        with open(json_file, "w", encoding="utf-8") as outfile:
+            json.dump(data, outfile, indent=4)
+
+    def write_data_to_csv(
+        self, get_item_response: data_types.GetItemResponse, csv_file: str
+    ) -> None:
+        flattened_data = [dict_util.flatten_dict(record) for record in get_item_response]
+
+        csv_columns = sorted(set(key for data in flattened_data for key in data.keys()))
+
+        with open(csv_file, "r", encoding="utf-8") as outfile:
+            writer = csv.DictWriter(outfile, fieldnames=csv_columns)
+            writer.writeheader()
+            writer.writerows(flattened_data)

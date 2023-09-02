@@ -8,7 +8,7 @@ from util import log, wait
 
 
 def run_loop(args: argparse.Namespace) -> None:
-    log.print_normal(f"{args.lattitude}, {args.longitude}, {args.radius}")
+    log.print_normal(f"{args.latitude}, {args.longitude}, {args.radius}")
     wait.wait(5)
 
 

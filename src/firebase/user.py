@@ -180,8 +180,18 @@ class FirebaseUser:
         searches = []
         with self.database_cache_lock:
             for user, info in self.database_cache.items():
-                search_items = info.get("searches", {}).get("items", [])
+                search_items = safe_get(dict(info), "searches.items".split("."), [])
                 if not search_items:
+                    continue
+
+                time_zone = safe_get(dict(info), "preferences.searchTimeZone.value".split("."), "")
+                hour_start = safe_get(dict(info), "searches.collectionTimeStart".split("."), 0)
+                hour_interval = safe_get(
+                    dict(info), "searches.hoursBetweenCollection".split("."), 0
+                )
+
+                if hour_interval == 0 or time_zone == "":
+                    log.print_warn(f"Skipping {user} because hour_interval is 0")
                     continue
 
                 for item in search_items:
@@ -189,13 +199,21 @@ class FirebaseUser:
                     if not region:
                         continue
                     log.print_ok_blue_arrow(f"Adding search for {user}: {json.dumps(region)}")
+                    last_update_time = item.get("lastSearchTime", 0)
                     search_region = too_good_to_go_data_types.Region(
-                        lattitude=region.get("lattitude", 0.0),
+                        latitude=region.get("latitude", 0.0),
                         longitude=region.get("longitude", 0.0),
                         radius=region.get("radius", 0),
                     )
                     searches.append(
-                        too_good_to_go_data_types.Search(user=user, region=search_region)
+                        too_good_to_go_data_types.Search(
+                            user=user,
+                            region=search_region,
+                            hour_start=hour_start,
+                            hour_interval=hour_interval,
+                            time_zone=time_zone,
+                            last_search_time=last_update_time,
+                        )
                     )
 
         return searches

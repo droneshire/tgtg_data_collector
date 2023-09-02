@@ -30,7 +30,7 @@ class Preferences(T.TypedDict):
 
 
 class Region(T.TypedDict):
-    lattitude: float
+    latitude: float
     longitude: float
     radius: int
 
@@ -38,6 +38,7 @@ class Region(T.TypedDict):
 class Search(T.TypedDict):
     region: Region
     sendEmail: bool
+    lastSearchTime: float
 
 
 class Searches(T.TypedDict):
