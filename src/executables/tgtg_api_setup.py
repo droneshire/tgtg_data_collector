@@ -4,7 +4,7 @@ import sys
 
 import dotenv
 
-from too_good_to_go.util import create_account
+from too_good_to_go.manager import TgtgManager
 from util import log
 
 
@@ -31,7 +31,8 @@ def main() -> None:
 
     log.print_ok_blue(f"Creating TGTG API account for {args.email}...")
 
-    credentials = create_account(args.email, args.credentials_file)
+    manager = TgtgManager(args.email, args.credentials_file, allow_create=True)
+    credentials = manager.create_account()
 
     if not credentials:
         sys.exit(1)
