@@ -6,7 +6,7 @@ import typing as T
 from tgtg import TgtgClient
 
 from too_good_to_go import data_types
-from util import dict_util, file_util, log
+from util import file_util, log
 
 
 class TgtgManager:
