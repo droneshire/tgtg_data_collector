@@ -1,6 +1,5 @@
 import datetime
 import json
-import time
 import typing as T
 
 import pytz
@@ -79,7 +78,7 @@ class TgtgCollectorBackend:
         last_search_time_datetime = datetime.datetime.fromtimestamp(last_search_time, tz=time_zone)
 
         if verbose:
-            log.print_ok_blue(f"Checking if we are within the interval")
+            log.print_ok_blue("Checking if we are within the interval")
             log.print_normal(f"Current time: {now}")
             log.print_normal(f"Today start time: {start_time}")
             log.print_normal(f"Interval start time: {yesterday_start_time}")
@@ -97,16 +96,19 @@ class TgtgCollectorBackend:
         for i, interval_time in enumerate(interval_times):
             if interval_time < now:
                 continue
-            elif interval_time == now:
+
+            if interval_time == now:
                 start_of_last_interval = interval_time
                 log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
                 break
-            elif i > 0:
-                # this should always be the case since we create the interval times based on
-                # the current time passed in minus 1 day
-                start_of_last_interval = interval_times[i - 1]
-                log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
-                break
+
+            if i == 0:
+                # should be impossible to reach based on the creation of the interval times
+                continue
+
+            start_of_last_interval = interval_times[i - 1]
+            log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
+            break
 
         if (
             start_of_last_interval is not None
