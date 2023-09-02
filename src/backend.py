@@ -68,12 +68,12 @@ class TgtgCollectorBackend:
         time_zone: T.Any,
         verbose: bool = False,
     ) -> bool:
-        yesterday = now - datetime.timedelta(days=1)
-
+        lookback_days = 1
         start_time = now.replace(hour=start_hour, minute=0, second=0, microsecond=0)
+        yesterday_start_time = start_time - datetime.timedelta(days=lookback_days)
         interval_times = [
-            yesterday + datetime.timedelta(hours=interval_hour * i)
-            for i in range(48 // interval_hour)
+            yesterday_start_time + datetime.timedelta(hours=interval_hour * i)
+            for i in range(lookback_days * 24 // interval_hour)
         ]
 
         last_search_time_datetime = datetime.datetime.fromtimestamp(last_search_time, tz=time_zone)
@@ -97,14 +97,20 @@ class TgtgCollectorBackend:
         for i, interval_time in enumerate(interval_times):
             if interval_time < now:
                 continue
-
-            if interval_time - datetime.timedelta(hours=interval_hour) < now:
+            elif interval_time == now:
                 start_of_last_interval = interval_time
+                log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
+                break
+            elif i > 0:
+                # this should always be the case since we create the interval times based on
+                # the current time passed in minus 1 day
+                start_of_last_interval = interval_times[i - 1]
+                log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
                 break
 
         if (
             start_of_last_interval is not None
-            and last_search_time_datetime > start_of_last_interval
+            and last_search_time_datetime >= start_of_last_interval
         ):
             if verbose:
                 log.print_normal("Last search time is in the window, skipping")

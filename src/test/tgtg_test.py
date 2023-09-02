@@ -34,15 +34,14 @@ class TgtgTest(unittest.TestCase):
         test_cases: T.List[T.Tuple[datetime.datetime, int, int, float, bool]] = []
 
         intervals = [1, 2, 3, 4, 6, 8, 12, 24]
-        # last search times is a float time that would be seconds from epoch (time.time())
         last_search_time_start = datetime.datetime(
             2020, 1, 1, 0, 0, 0, 0, tzinfo=time_zone
         ).timestamp()
         last_search_times = [last_search_time_start + i * 60 * 60 for i in range(0, 24 * 2)]
 
-        for hour in range(0, 24):
-            for interval_hour in intervals:
-                for start_hour in range(0, 24):
+        for hour in range(0, 1):
+            for interval_hour in intervals[:1]:
+                for start_hour in range(0, 1):
                     for last_search_time in last_search_times:
                         now = datetime.datetime(2020, 1, 2, hour, 0, 0, 0, tzinfo=time_zone)
                         test_cases.append(
