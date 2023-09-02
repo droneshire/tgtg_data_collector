@@ -19,7 +19,7 @@ class TgtgManager:
         if not self.credentials and allow_create:
             self.credentials = self.create_account()
 
-    def save_credentials(self, credentials: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
+    def save_credentials(self, credentials: T.Dict[str, T.Any]) -> None:
         file_util.make_sure_path_exists(os.path.dirname(self.credentials_file))
 
         if os.path.exists(self.credentials_file):
@@ -41,10 +41,7 @@ class TgtgManager:
             data = json.load(infile)
             all_credentials = dict(data) if data else {}
 
-        if email:
-            return all_credentials.get(email, {})
-        else:
-            return all_credentials
+        return all_credentials.get(email, {}) if email else all_credentials
 
     def create_account(self) -> T.Dict[str, T.Any]:
         try:
