@@ -82,7 +82,7 @@ class TgtgCollectorBackend:
             log.print_ok_blue(f"Checking if we are within the interval")
             log.print_normal(f"Current time: {now}")
             log.print_normal(f"Today start time: {start_time}")
-            log.print_normal(f"Interval start time: {yesterday}")
+            log.print_normal(f"Interval start time: {yesterday_start_time}")
             log.print_normal(f"Interval: {interval_hour}")
             time_since_update = int(now.timestamp() - last_search_time)
             log.print_normal(f"Last search: {fmt_util.get_pretty_seconds(time_since_update)} ago")
