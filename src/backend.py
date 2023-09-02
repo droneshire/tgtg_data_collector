@@ -37,7 +37,7 @@ class TgtgCollectorBackend:
         timezone = pytz.timezone(search["time_zone"])
         now = datetime.datetime.now(tz=timezone)
 
-        if not self.is_within_interval(
+        if self.is_within_interval(
             now, search["hour_start"], search["hour_interval"], search["last_search_time"], timezone
         ):
             log.print_warn("Not within interval, skipping")
@@ -79,10 +79,18 @@ class TgtgCollectorBackend:
         last_search_time_datetime = datetime.datetime.fromtimestamp(last_search_time, tz=time_zone)
 
         if verbose:
-            log.print_bold(f"Current time: {now}, checking interval")
-            log.print_bold(f"Start time: {start_time}")
-            time_since_update = int(time.time() - last_search_time)
-            log.print_normal(f"Last search time: {fmt_util.get_pretty_seconds(time_since_update)}")
+            log.print_ok_blue(f"Checking if we are within the interval")
+            log.print_normal(f"Current time: {now}")
+            log.print_normal(f"Today start time: {start_time}")
+            log.print_normal(f"Interval start time: {yesterday}")
+            log.print_normal(f"Interval: {interval_hour}")
+            time_since_update = int(now.timestamp() - last_search_time)
+            log.print_normal(f"Last search: {fmt_util.get_pretty_seconds(time_since_update)} ago")
+            log.print_normal(f"Last search time: {last_search_time_datetime}")
+
+        if last_search_time_datetime > now:
+            log.print_warn("Last search time is in the future, skipping")
+            return True
 
         # assumes last search time is within the last 24 hours
         start_of_last_interval = None
@@ -100,9 +108,10 @@ class TgtgCollectorBackend:
         ):
             if verbose:
                 log.print_normal("Last search time is in the window, skipping")
-            return False
+            return True
 
-        return True
+        log.print_ok_arrow("Last search is stale, running search")
+        return False
 
     def init(self) -> None:
         self.tgtg_manager.init()
