@@ -1,4 +1,3 @@
-import csv
 import datetime
 import json
 import os
@@ -111,15 +110,3 @@ class TgtgManager:
 
         with open(json_file, "w", encoding="utf-8") as outfile:
             json.dump(data, outfile, indent=4)
-
-    def write_data_to_csv(
-        self, get_item_response: data_types.GetItemResponse, csv_file: str
-    ) -> None:
-        flattened_data = [dict_util.flatten_dict(record) for record in get_item_response]
-
-        csv_columns = sorted(set(key for data in flattened_data for key in data.keys()))
-
-        with open(csv_file, "r", encoding="utf-8") as outfile:
-            writer = csv.DictWriter(outfile, fieldnames=csv_columns)
-            writer.writeheader()
-            writer.writerows(flattened_data)
