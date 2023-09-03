@@ -49,12 +49,12 @@ class TgtgCollectorBackend:
             self._maybe_run_search(search_hash, search)
 
     def _maybe_run_search(self, uuid: str, search: too_good_to_go_data_types.Search) -> None:
-        if self.verbose:
-            log.print_normal(f"Running search: {json.dumps(search, indent=4)}")
-
         timezone = pytz.timezone(search["time_zone"])
         now = datetime.datetime.now()
         now = timezone.localize(now)
+
+        if self.verbose:
+            log.print_normal(f"Checking search: {json.dumps(search, indent=4)}")
 
         if not self.is_time_to_search(
             now, search["hour_start"], search["hour_interval"], search["last_search_time"], timezone
@@ -76,40 +76,40 @@ class TgtgCollectorBackend:
         if self.verbose:
             log.print_normal(f"Found {len(results)} results")
 
+        did_send_email = True
+
         if len(results) == 0:
             log.print_warn("No results found, not saving anything")
-            return
-
-        tgtg_data_json_file = os.path.join(
-            self.tgtg_data_dir, f"tgtg_search_{uuid}_{search['user']}.json"
-        )
-        self.tgtg_manager.write_data_to_json(results, tgtg_data_json_file)
-
-        did_send_email = True
-        if self.email is not None and not self.dry_run and search.get("email_data", False):
-            food_emojis = ["🍕", "🍔", "🍟", "🍗", "🍖", "🌭", "🍿", "🍱", "🍛", "🍜", "🍝", "🍣", "🍤"]
-
-            message = "Hello!\n\n"
-            message += "See attached results from your Too Good To Go search:\n\n"
-            message += f"Time interval: {search['hour_interval']} hours\n"
-            message += f"Start time: {search['hour_start']}\n"
-            message += "Search location: \n"
-            message += f"{json.dumps(search['region'], indent=4)}\n\n"
-            message += "Thanks!\n\n"
-            message += "".join(food_emojis)
-
-            if self.verbose:
-                log.print_ok(f"Sending email to {search['user']}")
-                log.print_normal(f"Message: {message}")
-
-            did_send_email = email.send_email(
-                [self.email],
-                [search["user"]],
-                f"Too Good To Go Search Results {random.choice(food_emojis)}",
-                attachments=[tgtg_data_json_file],
-                content=message,
-                verbose=self.verbose,
+        else:
+            tgtg_data_json_file = os.path.join(
+                self.tgtg_data_dir, f"tgtg_search_{uuid}_{search['user']}.json"
             )
+            self.tgtg_manager.write_data_to_json(results, tgtg_data_json_file)
+
+            if self.email is not None and not self.dry_run and search.get("email_data", False):
+                food_emojis = ["🍕", "🍔", "🍟", "🍗", "🍖", "🌭", "🍿", "🍱", "🍛", "🍜", "🍝", "🍣", "🍤"]
+
+                message = "Hello!\n\n"
+                message += "See attached results from your Too Good To Go search:\n\n"
+                message += f"Time interval: {search['hour_interval']} hours\n"
+                message += f"Start time: {search['hour_start']}\n"
+                message += "Search location: \n"
+                message += f"{json.dumps(search['region'], indent=4)}\n\n"
+                message += "Thanks!\n\n"
+                message += "".join(food_emojis)
+
+                if self.verbose:
+                    log.print_ok(f"Sending email to {search['user']}")
+                    log.print_normal(f"Message: {message}")
+
+                did_send_email = email.send_email(
+                    [self.email],
+                    [search["user"]],
+                    f"Too Good To Go Search Results {random.choice(food_emojis)}",
+                    attachments=[tgtg_data_json_file],
+                    content=message,
+                    verbose=self.verbose,
+                )
 
         # TODO(ross): this is pretty inefficient, we potentially update the firebase
         # database for each search rather than just doing it user by user at the end, but

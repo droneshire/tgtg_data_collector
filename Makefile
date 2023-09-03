@@ -37,7 +37,7 @@ test:
 	$(RUN_PY) unittest discover -s test -p *_test.py -v
 
 run_worker_dev:
-	$(RUN_PY) executables.tgtg_worker --mode dev --time-between-loop 5
+	$(RUN_PY) executables.tgtg_worker --mode dev --time-between-loop 5 --verbose
 
 run_worker_prod:
 	$(RUN_PY) executables.tgtg_worker --mode prod

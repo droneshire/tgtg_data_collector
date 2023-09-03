@@ -105,13 +105,6 @@ class FirebaseUser:
                 "preferences.notifications.email.email".split("."),
                 "",
             )
-            phone_number = safe_get(
-                dict(self.database_cache[doc_id]),
-                "preferences.notifications.sms.phoneNumber".split("."),
-                "",
-            )
-            if phone_number and not phone_number.startswith("+1"):
-                phone_number = "+1" + phone_number
 
             if change.type.name == Changes.ADDED.name:
                 log.print_ok_blue(f"Added document: {doc_id}")
@@ -200,14 +193,20 @@ class FirebaseUser:
         self._maybe_upload_db_cache_to_firestore(user, old_db_user, db_user)
 
     @staticmethod
-    def get_uuid(search: too_good_to_go_data_types.Search) -> str:
+    def get_uuid(search: too_good_to_go_data_types.Search, verbose: bool = False) -> str:
         if not search:
+            if verbose:
+                log.print_warn(f"Search {search} is None")
             return ""
 
         if not search.get("user"):
+            if verbose:
+                log.print_warn(f"Search {search} has no user")
             return ""
 
         if not search.get("region"):
+            if verbose:
+                log.print_warn(f"Search {search} has no region")
             return ""
 
         if (
@@ -215,6 +214,8 @@ class FirebaseUser:
             or not search["region"].get("longitude")
             or not search["region"].get("radius")
         ):
+            if verbose:
+                log.print_warn(f"Search {search} has invalid region")
             return ""
 
         search_hash = "_".join(
@@ -232,18 +233,21 @@ class FirebaseUser:
         md5.update(search_hash.encode())
         search_uuid_hex = md5.hexdigest()
 
+        if verbose:
+            log.print_ok(f"Search {json.dumps(search, indent=4)} has uuid {search_uuid_hex}")
+
         return search_uuid_hex
 
     def update_after_search(
         self, user: str, search_name: str, last_search_time: float, did_send_email: bool
     ) -> None:
         with self.database_cache_lock:
-            old_db_user = copy.deepcopy(self.database_cache[user])
-            db_user = copy.deepcopy(self.database_cache[user])
-
-            if user not in db_user:
+            if user not in self.database_cache:
                 log.print_warn(f"User {user} not in database cache")
                 return
+
+            old_db_user = copy.deepcopy(self.database_cache[user])
+            db_user = copy.deepcopy(self.database_cache[user])
 
             search_items = safe_get(dict(db_user), "searches.items".split("."), {})
             if not search_items:
@@ -255,7 +259,7 @@ class FirebaseUser:
                 return
 
             search_items[search_name]["lastSearchTime"] = last_search_time
-            search_items[search_name]["sendEmail"] = did_send_email
+            search_items[search_name]["sendEmail"] = not did_send_email
 
             db_user["searches"]["items"] = search_items
 
@@ -263,6 +267,7 @@ class FirebaseUser:
 
     def get_searches(self) -> T.Dict[str, too_good_to_go_data_types.Search]:
         searches = {}
+        log.print_bold("Getting searches from database cache")
         with self.database_cache_lock:
             for user, info in self.database_cache.items():
                 search_items = safe_get(dict(info), "searches.items".split("."), {})
@@ -293,7 +298,8 @@ class FirebaseUser:
                         longitude=region.get("longitude", 0.0),
                         radius=region.get("radius", 0),
                     )
-                    searches[self.get_uuid(item)] = too_good_to_go_data_types.Search(
+
+                    search = too_good_to_go_data_types.Search(
                         user=user,
                         search_name=item_name,
                         region=search_region,
@@ -303,5 +309,8 @@ class FirebaseUser:
                         last_search_time=last_update_time,
                         email_data=item.get("sendEmail", False),
                     )
+
+                    search_hash = self.get_uuid(search, self.verbose)
+                    searches[search_hash] = search
 
         return searches
