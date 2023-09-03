@@ -173,6 +173,11 @@ class FirebaseUser:
             {"heartbeat": firestore.SERVER_TIMESTAMP}, merge=True
         )
 
+    def check_and_maybe_update_to_firebase(
+        self, user: str, db_user: firebase_data_types.User
+    ) -> None:
+        pass
+
     def _get_users(self) -> T.Dict[str, firebase_data_types.User]:
         with self.database_cache_lock:
             return copy.deepcopy(self.database_cache)
@@ -251,6 +256,7 @@ class FirebaseUser:
                             hour_interval=hour_interval,
                             time_zone=time_zone,
                             last_search_time=last_update_time,
+                            email_data=item.get("sendEmail", False),
                         )
                     )
 

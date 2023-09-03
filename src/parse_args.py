@@ -1,4 +1,5 @@
 import argparse
+import os
 
 from constants import PROJECT_NAME
 from util import log
@@ -18,9 +19,32 @@ def parse_args() -> argparse.Namespace:
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
     )
     parser.add_argument(
+        "--mode",
+        type=str,
+        help="Mode to run in",
+        default="prod",
+        choices=["prod", "dev"],
+    )
+    parser.add_argument(
+        "--tgtg-data-dir",
+        type=str,
+        help="Directory to store TGTG data",
+        default=os.path.join(log_dir, "tgtg_data"),
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Print verbose output",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Run the script without actually sending SMS",
     )
-
+    parser.add_argument(
+        "--time-between-loop",
+        type=int,
+        help="Time between each loop in seconds",
+        default=60 * 60 * 30,
+    )
     return parser.parse_args()

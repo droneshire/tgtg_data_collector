@@ -15,7 +15,7 @@ from util import log
 class TgtgTest(unittest.TestCase):
     test_dir: str = os.path.join(os.path.dirname(__file__), "test_data")
     test_email: str = "test@gmail.com"
-    verbose: bool = True
+    verbose: bool = False
     time_zone = pytz.timezone("America/Los_Angeles")
 
     def setUp(self) -> None:
@@ -44,6 +44,8 @@ class TgtgTest(unittest.TestCase):
                 "hour_start": 4,
                 "hour_interval": 5,
                 "time_zone": "America/Los_Angeles",
+                "last_search_time": 0,
+                "email_data": False,
             }
         )
 
@@ -83,10 +85,12 @@ class TgtgTest(unittest.TestCase):
                 start_of_matching_interval = TgtgCollectorBackend.get_start_of_last_interval(
                     case[0], case[1]
                 )
-                log.print_normal(
-                    f"Start time: {case[2]}, interval: {case[3]}, offset: {case[4]} now: {case[1]},"
-                    f" start of matching interval: {start_of_matching_interval}"
-                )
+                if self.verbose:
+                    log.print_normal(
+                        f"Start time: {case[2]}, interval: {case[3]}, "
+                        f"offset: {case[4]} now: {case[1]},"
+                        f" start of matching interval: {start_of_matching_interval}"
+                    )
                 self.assertEqual(start_of_matching_interval, case[2])
 
     def test_time_within_divisors_of_24(self) -> None:

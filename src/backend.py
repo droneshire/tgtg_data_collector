@@ -1,5 +1,8 @@
 import datetime
 import json
+import os
+import random
+import time
 import typing as T
 
 import pytz
@@ -7,23 +10,35 @@ import pytz
 from firebase.user import FirebaseUser
 from too_good_to_go import data_types as too_good_to_go_data_types
 from too_good_to_go.manager import TgtgManager
-from util import fmt_util, log
+from util import email, fmt_util, log
 
 
 class TgtgCollectorBackend:
     INTERVALS = [1, 2, 3, 4, 6, 8, 12, 24]
+    TIME_BETWEEN_FIREBASE_QUERIES = {
+        "prod": 60 * 60 * 24,
+        "dev": 60 * 60,
+    }
 
     def __init__(
         self,
+        email_obj: email.Email,
         tgtg_manager: TgtgManager,
         firebase_user: FirebaseUser,
-        tgtg_data_json_file: str,
+        tgtg_data_dir: str,
+        mode: str = "prod",
         verbose: bool = False,
+        dry_run: bool = False,
     ) -> None:
+        self.email = email_obj
         self.tgtg_manager = tgtg_manager
         self.firebase_user = firebase_user
         self.tgtg_data_dir = tgtg_data_dir
+        self.mode = mode
         self.verbose = verbose
+        self.dry_run = dry_run
+
+        self.last_query_firebase_time: T.Optional[float] = None
 
     def _check_and_run_searches(self) -> None:
         searches: T.List[too_good_to_go_data_types.Search] = self.firebase_user.get_searches()
@@ -68,6 +83,64 @@ class TgtgCollectorBackend:
         )
         self.tgtg_manager.write_data_to_json(results, tgtg_data_json_file)
 
+        if self.email is not None and not self.dry_run and search.get("email_data", False):
+            food_emojis = ["🍕", "🍔", "🍟", "🍗", "🍖", "🌭", "🍿", "🍱", "🍛", "🍜", "🍝", "🍣", "🍤"]
+
+            message = "Hello!\n\n"
+            message += "See attached results from your Too Good To Go search:\n\n"
+            message += f"Time interval: {search['hour_interval']} hours\n"
+            message += f"Start time: {search['hour_start']}\n"
+            message += "Search location: \n"
+            message += f"{json.dumps(search['region'], indent=4)}\n\n"
+            message += "Thanks!\n\n"
+            message += "".join(food_emojis)
+
+            if self.verbose:
+                log.print_ok(f"Sending email to {search['user']}")
+                log.print_normal(f"Message: {message}")
+
+            email.send_email(
+                [self.email],
+                [search["user"]],
+                f"Too Good To Go Search Results {random.choice(food_emojis)}",
+                attachments=[tgtg_data_json_file],
+                content=message,
+                verbose=self.verbose,
+            )
+
+    def _check_and_see_if_firebase_should_be_updated(self) -> None:
+        if self.firebase_user is None:
+            return
+
+        for searches in self.firebase_user.get_searches():
+            # self.firebase_user.check_and_maybe_update_to_firebase(user_id, item["id"])
+            pass
+
+        self.firebase_user.check_and_maybe_handle_firebase_db_updates()
+
+    def _maybe_get_synchronous_update_from_firebase(self) -> None:
+        if self.firebase_user is None:
+            return
+
+        update_from_firebase = False
+        if self.last_query_firebase_time is None:
+            update_from_firebase = True
+        else:
+            time_since_last_update = time.time() - self.last_query_firebase_time
+            update_from_firebase = (
+                time_since_last_update > self.TIME_BETWEEN_FIREBASE_QUERIES[self.mode]
+            )
+
+        if update_from_firebase:
+            self.last_query_firebase_time = time.time()
+            self.firebase_user.update_watchers()
+        else:
+            time_till_next_update = int(
+                self.TIME_BETWEEN_FIREBASE_QUERIES[self.mode] - time_since_last_update
+            )
+            next_update_str = fmt_util.get_pretty_seconds(time_till_next_update)
+            log.print_normal(f"Next firebase manual refresh in {next_update_str}")
+
     @staticmethod
     def is_time_to_search(
         now: datetime.datetime,
@@ -78,7 +151,10 @@ class TgtgCollectorBackend:
         verbose: bool = False,
     ) -> bool:
         if interval_hour not in TgtgCollectorBackend.INTERVALS:
-            log.print_warn(f"Invalid interval: {interval_hour}")
+            log.print_warn(
+                f"Invalid interval: {interval_hour}. "
+                f"Valid intervals: {TgtgCollectorBackend.INTERVALS}"
+            )
             return False
 
         lookback_days = 1
@@ -122,9 +198,10 @@ class TgtgCollectorBackend:
             return True
 
         time_since_last_interval = int(now.timestamp() - start_of_last_interval.timestamp())
-        log.print_normal(
-            f"Last interval: {fmt_util.get_pretty_seconds(time_since_last_interval)} ago"
-        )
+        if verbose:
+            log.print_normal(
+                f"Last interval: {fmt_util.get_pretty_seconds(time_since_last_interval)} ago"
+            )
         if (
             start_of_last_interval is not None
             and last_search_time_datetime >= start_of_last_interval
@@ -150,7 +227,8 @@ class TgtgCollectorBackend:
 
         if len(interval_times) == 1:
             start_of_last_interval = interval_times[0]
-            log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
+            if verbose:
+                log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
             return start_of_last_interval
 
         for i, interval_time in enumerate(interval_times):
@@ -159,7 +237,8 @@ class TgtgCollectorBackend:
 
             if interval_time == now:
                 start_of_last_interval = interval_time
-                log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
+                if verbose:
+                    log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
                 break
 
             if i == 0:
@@ -167,7 +246,8 @@ class TgtgCollectorBackend:
                 continue
 
             start_of_last_interval = interval_times[i - 1]
-            log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
+            if verbose:
+                log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
             break
         return start_of_last_interval
 
@@ -177,3 +257,5 @@ class TgtgCollectorBackend:
     def run(self) -> None:
         self.firebase_user.health_ping()
         self._check_and_run_searches()
+        self._maybe_get_synchronous_update_from_firebase()
+        self._check_and_see_if_firebase_should_be_updated()
