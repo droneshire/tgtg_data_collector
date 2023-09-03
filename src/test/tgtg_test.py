@@ -9,24 +9,21 @@ import pytz
 from backend import TgtgCollectorBackend
 from firebase.user import FirebaseUser
 from too_good_to_go.data_types import Search
-from util import log, file_util
+from util import file_util, log
 
 
 class TgtgTest(unittest.TestCase):
-    test_dir: str = os.path.join(os.path.dirname(__file__), "test_data")
     test_email: str = "test@gmail.com"
     verbose: bool = False
     time_zone = pytz.timezone("America/Los_Angeles")
 
     def setUp(self) -> None:
         # pylint: disable=consider-using-with
-        self.temp_credentials_file = tempfile.NamedTemporaryFile(delete=False)
+        self.temp_credentials_file = tempfile.NamedTemporaryFile(
+            delete=False, suffix="_credentials.json"
+        )
 
-        file_util.make_sure_path_exists(self.test_dir)
-
-        with open(
-            os.path.join(self.test_dir, "credentials.json"), "w", encoding="utf-8"
-        ) as outfile:
+        with open(self.temp_credentials_file.name, "w", encoding="utf-8") as outfile:
             outfile.write("{}")
 
     def tearDown(self) -> None:
