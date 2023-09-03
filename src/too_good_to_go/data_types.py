@@ -9,6 +9,7 @@ class Region(TypedDict):
 
 class Search(TypedDict):
     user: str
+    uuid: str
     region: Region
     hour_start: int
     hour_interval: int

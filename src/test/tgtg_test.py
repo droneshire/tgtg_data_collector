@@ -7,6 +7,8 @@ import unittest
 import pytz
 
 from backend import TgtgCollectorBackend
+from firebase.user import FirebaseUser
+from too_good_to_go.data_types import Search
 from util import log
 
 
@@ -29,8 +31,29 @@ class TgtgTest(unittest.TestCase):
         if self.temp_credentials_file and os.path.isfile(self.temp_credentials_file.name):
             os.remove(self.temp_credentials_file.name)
 
+    def test_uuid(self) -> None:
+        search: Search = Search(
+            {
+                "user": self.test_email,
+                "uuid": "",
+                "region": {
+                    "latitude": 1.0,
+                    "longitude": 2.0,
+                    "radius": 3,
+                },
+                "hour_start": 4,
+                "hour_interval": 5,
+                "time_zone": "America/Los_Angeles",
+            }
+        )
+
+        uuid = FirebaseUser.get_uuid(search)
+        self.assertEqual(uuid, "3341a7c22ee8f9232391875d4973018c")
+
     def test_finding_interval(self) -> None:
-        test_cases: T.List[T.Tuple[datetime.datetime, int, int, int]] = []
+        test_cases: T.List[
+            T.Tuple[T.List[datetime.datetime], datetime.datetime, datetime.datetime, int, int]
+        ] = []
 
         start_time = datetime.datetime(2023, 1, 1, 0, 0, 0, 0)
         start_time = self.time_zone.localize(start_time)

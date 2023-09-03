@@ -1,5 +1,6 @@
 import copy
 import enum
+import hashlib
 import json
 import threading
 import time
@@ -176,6 +177,41 @@ class FirebaseUser:
         with self.database_cache_lock:
             return copy.deepcopy(self.database_cache)
 
+    @staticmethod
+    def get_uuid(search: too_good_to_go_data_types.Search) -> str:
+        if not search:
+            return ""
+
+        if not search.get("user"):
+            return ""
+
+        if not search.get("region"):
+            return ""
+
+        if (
+            not search["region"].get("latitude")
+            or not search["region"].get("longitude")
+            or not search["region"].get("radius")
+        ):
+            return ""
+
+        search_hash = "_".join(
+            [
+                search["user"],
+                str(search["region"]["latitude"]),
+                str(search["region"]["longitude"]),
+                str(search["region"]["radius"]),
+                str(search["hour_start"]),
+                str(search["hour_interval"]),
+                str(search["time_zone"]),
+            ]
+        )
+        md5 = hashlib.md5()
+        md5.update(search_hash.encode())
+        search_uuid_hex = md5.hexdigest()
+
+        return search_uuid_hex
+
     def get_searches(self) -> T.List[too_good_to_go_data_types.Search]:
         searches = []
         with self.database_cache_lock:
@@ -200,6 +236,7 @@ class FirebaseUser:
                         continue
                     log.print_ok_blue_arrow(f"Adding search for {user}: {json.dumps(region)}")
                     last_update_time = item.get("lastSearchTime", 0)
+
                     search_region = too_good_to_go_data_types.Region(
                         latitude=region.get("latitude", 0.0),
                         longitude=region.get("longitude", 0.0),
@@ -208,6 +245,7 @@ class FirebaseUser:
                     searches.append(
                         too_good_to_go_data_types.Search(
                             user=user,
+                            uuid=self.get_uuid(item),
                             region=search_region,
                             hour_start=hour_start,
                             hour_interval=hour_interval,

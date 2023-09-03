@@ -22,16 +22,16 @@ class TgtgCollectorBackend:
     ) -> None:
         self.tgtg_manager = tgtg_manager
         self.firebase_user = firebase_user
-        self.tgtg_data_json_file = tgtg_data_json_file
+        self.tgtg_data_dir = tgtg_data_dir
         self.verbose = verbose
 
     def _check_and_run_searches(self) -> None:
         searches: T.List[too_good_to_go_data_types.Search] = self.firebase_user.get_searches()
 
         for search in searches:
-            self._run_search(search)
+            self._maybe_run_search(search)
 
-    def _run_search(self, search: too_good_to_go_data_types.Search) -> None:
+    def _maybe_run_search(self, search: too_good_to_go_data_types.Search) -> None:
         if self.verbose:
             log.print_normal(f"Running search: {json.dumps(search, indent=4)}")
 
@@ -59,7 +59,14 @@ class TgtgCollectorBackend:
         if self.verbose:
             log.print_normal(f"Found {len(results)} results")
 
-        self.tgtg_manager.write_data_to_json(results, self.tgtg_data_json_file)
+        if len(results) == 0:
+            log.print_warn("No results found, not saving anything")
+            return
+
+        tgtg_data_json_file = os.path.join(
+            self.tgtg_data_dir, f"tgtg_search_{search['uuid']}_{search['user']}.json"
+        )
+        self.tgtg_manager.write_data_to_json(results, tgtg_data_json_file)
 
     @staticmethod
     def is_time_to_search(
