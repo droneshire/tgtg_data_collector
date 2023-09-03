@@ -69,7 +69,10 @@ def main() -> None:
     with open(bot_pidfile, "w", encoding="utf-8") as outfile:
         outfile.write(str(os.getpid()))
 
-    run_loop(args)
+    try:
+        run_loop(args)
+    except KeyboardInterrupt:
+        os.remove(bot_pidfile)
 
 
 if __name__ == "__main__":
