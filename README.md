@@ -40,3 +40,15 @@ Instructions to do this in your google account:
 4. Give a name and click Generate.
 5. Follow the instructions to enter the app password.
 6. Click Done.
+
+## Firestore
+
+You'll need your Firestore credentials file located in the root directory. The filename should match the `FIREBASE_CREDENTIALS_FILE` from above
+
+## TGTG Api Setup
+
+Run the following command and follow the instructions sent in the corresponding email from TGTG.
+
+```
+make create_account email=<email from `TGTG_DEFAULT_EMAIL_API`>
+```
