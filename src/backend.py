@@ -263,4 +263,5 @@ class TgtgCollectorBackend:
     def run(self) -> None:
         self._check_from_firebase()
         self._check_and_run_searches()
+        self._check_and_send_emails()
         self._check_to_firebase()

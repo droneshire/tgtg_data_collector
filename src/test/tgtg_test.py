@@ -9,7 +9,7 @@ import pytz
 from backend import TgtgCollectorBackend
 from firebase.user import FirebaseUser
 from too_good_to_go.data_types import Search
-from util import log
+from util import log, file_util
 
 
 class TgtgTest(unittest.TestCase):
@@ -21,6 +21,8 @@ class TgtgTest(unittest.TestCase):
     def setUp(self) -> None:
         # pylint: disable=consider-using-with
         self.temp_credentials_file = tempfile.NamedTemporaryFile(delete=False)
+
+        file_util.make_sure_path_exists(self.test_dir)
 
         with open(
             os.path.join(self.test_dir, "credentials.json"), "w", encoding="utf-8"
