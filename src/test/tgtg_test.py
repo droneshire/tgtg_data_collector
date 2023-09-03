@@ -35,7 +35,7 @@ class TgtgTest(unittest.TestCase):
         search: Search = Search(
             {
                 "user": self.test_email,
-                "uuid": "",
+                "search_name": "",
                 "region": {
                     "latitude": 1.0,
                     "longitude": 2.0,

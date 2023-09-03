@@ -65,7 +65,16 @@ def send_email(
     content: str,
     attachments: T.Optional[T.List[str]] = None,
     verbose: bool = False,
-) -> None:
+) -> bool:
+    """
+    Given a list of emails, try to send a the email from one of the accounts.
+    Multiple emails helps in the case you are getting throttled from sending too many emails
+    from one account.
+
+    This method should not be used to send a the same email to many accounts. That should be done
+    outside this method by calling this method multiple times.
+    """
+
     for email in emails:
         if email["quiet"]:
             continue
@@ -78,8 +87,9 @@ def send_email(
                 attachments=attachments,
                 verbose=verbose,
             )
-            return
+            return True
         except:  # pylint: disable=bare-except
             pass
 
     log.print_fail(f"Failed to send email alert for {' '.join(to_addresses)}")
+    return False

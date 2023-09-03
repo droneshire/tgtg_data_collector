@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 
 import dotenv
@@ -9,6 +10,14 @@ from firebase.user import FirebaseUser
 from parse_args import parse_args
 from too_good_to_go.manager import TgtgManager
 from util import email, file_util, log, wait
+
+
+def get_firebase_host_url(firebase_credentials_file: str) -> str:
+    with open(firebase_credentials_file, encoding="utf-8") as infile:
+        data = json.load(infile)
+        project_name = data["project_id"]
+        url = f"https://{project_name}.web.app/"
+    return url
 
 
 def run_loop(args: argparse.Namespace) -> None:
@@ -26,7 +35,8 @@ def run_loop(args: argparse.Namespace) -> None:
         os.environ["TGTG_DEFAULT_API_CREDENTIALS_FILE"],
         allow_create=True,
     )
-    firebase_user = FirebaseUser(os.environ["FIREBASE_CREDENTIALS_FILE"], verbose=args.verbose)
+    firebase_credentials_file = os.environ["FIREBASE_CREDENTIALS_FILE"]
+    firebase_user = FirebaseUser(firebase_credentials_file, verbose=args.verbose)
     backend = TgtgCollectorBackend(
         sender_email,
         tgtg_manager=tgtg_manager,
@@ -36,6 +46,9 @@ def run_loop(args: argparse.Namespace) -> None:
         verbose=args.verbose,
         dry_run=args.dry_run,
     )
+
+    url = get_firebase_host_url(firebase_credentials_file)
+    log.print_bright(f"Web server can be found at: {url}")
 
     backend.init()
 

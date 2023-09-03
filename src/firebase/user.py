@@ -53,6 +53,28 @@ class FirebaseUser:
                 del self.database_cache[name]
         log.print_warn(f"Deleting user {name} from cache")
 
+    def _maybe_upload_db_cache_to_firestore(
+        self,
+        user: str,
+        old_db_user: firebase_data_types.User,
+        db_user: firebase_data_types.User,
+    ) -> None:
+        diff = deepdiff.DeepDiff(
+            old_db_user,
+            db_user,
+            ignore_order=True,
+        )
+        if not diff:
+            return
+
+        log.print_normal(
+            f"Updated user {user} in database:\n{diff.to_json(indent=4, sort_keys=True)}"
+        )
+
+        user_dict_firestore = json.loads(json.dumps(db_user))
+
+        self.user_ref.document(user).set(user_dict_firestore)
+
     def _collection_snapshot_handler(
         self,
         collection_snapshot: T.List[DocumentSnapshot],
@@ -116,17 +138,11 @@ class FirebaseUser:
             log.print_warn(f"Missing keys in user {user}:\n{missing_keys}")
             patch_missing_keys_recursive(dict(firebase_data_types.NULL_USER), dict(db_user))
 
-        diff = deepdiff.DeepDiff(
-            old_db_user,
-            db_user,
-            ignore_order=True,
-        )
-        if not diff:
-            return
+        self._maybe_upload_db_cache_to_firestore(user, old_db_user, db_user)
 
-        log.print_normal(
-            f"Updated client {user} in database:\n{diff.to_json(indent=4, sort_keys=True)}"
-        )
+    def get_users(self) -> T.Dict[str, firebase_data_types.User]:
+        with self.database_cache_lock:
+            return copy.deepcopy(self.database_cache)
 
     def update_watchers(self) -> None:
         log.print_normal("Updating watcher...")
@@ -176,11 +192,12 @@ class FirebaseUser:
     def check_and_maybe_update_to_firebase(
         self, user: str, db_user: firebase_data_types.User
     ) -> None:
-        pass
+        if user not in self.database_cache:
+            return
 
-    def _get_users(self) -> T.Dict[str, firebase_data_types.User]:
-        with self.database_cache_lock:
-            return copy.deepcopy(self.database_cache)
+        old_db_user = copy.deepcopy(self.database_cache[user])
+
+        self._maybe_upload_db_cache_to_firestore(user, old_db_user, db_user)
 
     @staticmethod
     def get_uuid(search: too_good_to_go_data_types.Search) -> str:
@@ -217,11 +234,38 @@ class FirebaseUser:
 
         return search_uuid_hex
 
-    def get_searches(self) -> T.List[too_good_to_go_data_types.Search]:
-        searches = []
+    def update_after_search(
+        self, user: str, search_name: str, last_search_time: float, did_send_email: bool
+    ) -> None:
+        with self.database_cache_lock:
+            old_db_user = copy.deepcopy(self.database_cache[user])
+            db_user = copy.deepcopy(self.database_cache[user])
+
+            if user not in db_user:
+                log.print_warn(f"User {user} not in database cache")
+                return
+
+            search_items = safe_get(dict(db_user), "searches.items".split("."), {})
+            if not search_items:
+                log.print_warn(f"User {user} has no searches")
+                return
+
+            if search_name not in search_items:
+                log.print_warn(f"User {user} has no search named {search_name}")
+                return
+
+            search_items[search_name]["lastSearchTime"] = last_search_time
+            search_items[search_name]["sendEmail"] = did_send_email
+
+            db_user["searches"]["items"] = search_items
+
+            self._maybe_upload_db_cache_to_firestore(user, old_db_user, db_user)
+
+    def get_searches(self) -> T.Dict[str, too_good_to_go_data_types.Search]:
+        searches = {}
         with self.database_cache_lock:
             for user, info in self.database_cache.items():
-                search_items = safe_get(dict(info), "searches.items".split("."), [])
+                search_items = safe_get(dict(info), "searches.items".split("."), {})
                 if not search_items:
                     continue
 
@@ -235,11 +279,13 @@ class FirebaseUser:
                     log.print_warn(f"Skipping {user} because hour_interval is 0")
                     continue
 
-                for item in search_items:
+                for item_name, item in search_items.items():
                     region = item.get("region", {})
                     if not region:
                         continue
-                    log.print_ok_blue_arrow(f"Adding search for {user}: {json.dumps(region)}")
+                    log.print_ok_blue_arrow(
+                        f"Adding search: {item_name}, for {user}: {json.dumps(region)}"
+                    )
                     last_update_time = item.get("lastSearchTime", 0)
 
                     search_region = too_good_to_go_data_types.Region(
@@ -247,17 +293,15 @@ class FirebaseUser:
                         longitude=region.get("longitude", 0.0),
                         radius=region.get("radius", 0),
                     )
-                    searches.append(
-                        too_good_to_go_data_types.Search(
-                            user=user,
-                            uuid=self.get_uuid(item),
-                            region=search_region,
-                            hour_start=hour_start,
-                            hour_interval=hour_interval,
-                            time_zone=time_zone,
-                            last_search_time=last_update_time,
-                            email_data=item.get("sendEmail", False),
-                        )
+                    searches[self.get_uuid(item)] = too_good_to_go_data_types.Search(
+                        user=user,
+                        search_name=item_name,
+                        region=search_region,
+                        hour_start=hour_start,
+                        hour_interval=hour_interval,
+                        time_zone=time_zone,
+                        last_search_time=last_update_time,
+                        email_data=item.get("sendEmail", False),
                     )
 
         return searches

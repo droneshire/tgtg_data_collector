@@ -3,6 +3,7 @@ import json
 import os
 import typing as T
 
+import tgtg.exceptions as tgtg_exceptions
 from tgtg import TgtgClient
 
 from too_good_to_go import data_types
@@ -15,7 +16,7 @@ class TgtgManager:
         self.email = email
         self.allow_create = allow_create
 
-        self.client = TgtgClient(email=self.email)
+        self.client = None
         self.credentials: T.Dict[str, T.Any] = {}
 
     def init(self) -> None:
@@ -23,6 +24,10 @@ class TgtgManager:
 
         if not self.credentials and self.allow_create:
             self.credentials = self.create_account()
+
+        self.client = TgtgClient(**self.credentials)
+
+        log.print_ok_blue_arrow(f"Logged in as {self.email}")
 
     def save_credentials(self, credentials: T.Dict[str, T.Any]) -> None:
         file_util.make_sure_path_exists(os.path.dirname(self.credentials_file))
@@ -54,8 +59,12 @@ class TgtgManager:
         except TypeError:
             log.print_fail(f"Failed to create account for {self.email}!")
             return {}
+        except tgtg_exceptions.TgtgAPIError as exception:
+            log.print_fail(f"Failed to create account for {self.email}!")
+            log.print_fail(f"{exception}")
+            return {}
 
-        credentials = dict(self.client.get_credentials())
+        credentials = dict(TgtgClient(email=self.email).get_credentials())
 
         log.print_ok(f"Account Credentials for {self.email}:")
         log.print_bright(f"{json.dumps(credentials, indent=4)}")
@@ -70,7 +79,7 @@ class TgtgManager:
         if not os.path.exists(self.credentials_file):
             log.print_warn(f"Credentials file {self.credentials_file} does not exist!")
 
-            credentials = self.client.get_credentials()
+            credentials = TgtgClient(email=self.email).get_credentials()
 
             if credentials:
                 self.save_credentials(credentials)
@@ -86,6 +95,10 @@ class TgtgManager:
         return credentials
 
     def search_region(self, region: data_types.Region) -> data_types.GetItemResponse:
+        if self.client is None:
+            log.print_fail("Client not initialized!")
+            return data_types.GetItemResponse({"results": []})
+
         data = self.client.get_items(
             favorites_only=False,
             latitude=region["latitude"],

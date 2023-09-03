@@ -42,7 +42,7 @@ class Search(T.TypedDict):
 
 
 class Searches(T.TypedDict):
-    items: T.List[Search]
+    items: T.Dict[str, Search]
     hoursBetweenCollection: int
     collectionTimeStart: int
 
@@ -66,7 +66,7 @@ NULL_USER = User(
         ),
     ),
     searches=Searches(
-        items=[],
+        items={},
         hoursBetweenCollection=3,
         collectionTimeStart=0,
     ),

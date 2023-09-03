@@ -17,7 +17,7 @@ class TgtgCollectorBackend:
     INTERVALS = [1, 2, 3, 4, 6, 8, 12, 24]
     TIME_BETWEEN_FIREBASE_QUERIES = {
         "prod": 60 * 60 * 24,
-        "dev": 60 * 60,
+        "dev": 60 * 1,
     }
 
     def __init__(
@@ -41,12 +41,14 @@ class TgtgCollectorBackend:
         self.last_query_firebase_time: T.Optional[float] = None
 
     def _check_and_run_searches(self) -> None:
-        searches: T.List[too_good_to_go_data_types.Search] = self.firebase_user.get_searches()
+        searches: T.Dict[str, too_good_to_go_data_types.Search] = self.firebase_user.get_searches()
 
-        for search in searches:
-            self._maybe_run_search(search)
+        log.print_normal(f"Found {len(searches)} searches")
 
-    def _maybe_run_search(self, search: too_good_to_go_data_types.Search) -> None:
+        for search_hash, search in searches.items():
+            self._maybe_run_search(search_hash, search)
+
+    def _maybe_run_search(self, uuid: str, search: too_good_to_go_data_types.Search) -> None:
         if self.verbose:
             log.print_normal(f"Running search: {json.dumps(search, indent=4)}")
 
@@ -79,10 +81,11 @@ class TgtgCollectorBackend:
             return
 
         tgtg_data_json_file = os.path.join(
-            self.tgtg_data_dir, f"tgtg_search_{search['uuid']}_{search['user']}.json"
+            self.tgtg_data_dir, f"tgtg_search_{uuid}_{search['user']}.json"
         )
         self.tgtg_manager.write_data_to_json(results, tgtg_data_json_file)
 
+        did_send_email = True
         if self.email is not None and not self.dry_run and search.get("email_data", False):
             food_emojis = ["🍕", "🍔", "🍟", "🍗", "🍖", "🌭", "🍿", "🍱", "🍛", "🍜", "🍝", "🍣", "🍤"]
 
@@ -99,7 +102,7 @@ class TgtgCollectorBackend:
                 log.print_ok(f"Sending email to {search['user']}")
                 log.print_normal(f"Message: {message}")
 
-            email.send_email(
+            did_send_email = email.send_email(
                 [self.email],
                 [search["user"]],
                 f"Too Good To Go Search Results {random.choice(food_emojis)}",
@@ -108,20 +111,23 @@ class TgtgCollectorBackend:
                 verbose=self.verbose,
             )
 
-    def _check_and_see_if_firebase_should_be_updated(self) -> None:
-        if self.firebase_user is None:
-            return
+        # TODO(ross): this is pretty inefficient, we potentially update the firebase
+        # database for each search rather than just doing it user by user at the end, but
+        # this module doesn't really have a sense of user, just a list of searches. Would need
+        # to make cache the db before running searches and then update the db after running on
+        # a user by user basis instead of search by search.
+        self.firebase_user.update_after_search(
+            search["user"], search["search_name"], time.time(), did_send_email
+        )
 
-        for searches in self.firebase_user.get_searches():
-            # self.firebase_user.check_and_maybe_update_to_firebase(user_id, item["id"])
-            pass
+    def _check_to_firebase(self) -> None:
+        self.firebase_user.health_ping()
 
+    def _check_from_firebase(self) -> None:
+        self._maybe_get_synchronous_update_from_firebase()
         self.firebase_user.check_and_maybe_handle_firebase_db_updates()
 
     def _maybe_get_synchronous_update_from_firebase(self) -> None:
-        if self.firebase_user is None:
-            return
-
         update_from_firebase = False
         if self.last_query_firebase_time is None:
             update_from_firebase = True
@@ -255,7 +261,6 @@ class TgtgCollectorBackend:
         self.tgtg_manager.init()
 
     def run(self) -> None:
-        self.firebase_user.health_ping()
+        self._check_from_firebase()
         self._check_and_run_searches()
-        self._maybe_get_synchronous_update_from_firebase()
-        self._check_and_see_if_firebase_should_be_updated()
+        self._check_to_firebase()
