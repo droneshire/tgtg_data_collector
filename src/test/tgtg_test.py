@@ -14,6 +14,7 @@ class TgtgTest(unittest.TestCase):
     test_dir: str = os.path.join(os.path.dirname(__file__), "test_data")
     test_email: str = "test@gmail.com"
     verbose: bool = True
+    time_zone = pytz.timezone("America/Los_Angeles")
 
     def setUp(self) -> None:
         # pylint: disable=consider-using-with
@@ -28,45 +29,95 @@ class TgtgTest(unittest.TestCase):
         if self.temp_credentials_file and os.path.isfile(self.temp_credentials_file.name):
             os.remove(self.temp_credentials_file.name)
 
-    def test_is_time_to_search(self) -> None:
-        log.print_bright("\ntest_is_time_to_search")
-        time_zone = pytz.timezone("America/Los_Angeles")
+    def test_finding_interval(self) -> None:
+        test_cases: T.List[T.Tuple[datetime.datetime, int, int, int]] = []
+
+        start_time = datetime.datetime(2023, 1, 1, 0, 0, 0, 0)
+        start_time = self.time_zone.localize(start_time)
+
+        for interval_hour in TgtgCollectorBackend.INTERVALS:
+            time_intervals = [
+                start_time + datetime.timedelta(hours=i * interval_hour)
+                for i in range(max(24 // interval_hour, 2))
+            ]
+
+            for hour in range(interval_hour):
+                now = start_time + datetime.timedelta(hours=hour)
+                test_cases.append((time_intervals, now, start_time, interval_hour, hour))
+
+            now = start_time + datetime.timedelta(hours=interval_hour)
+            test_cases.append(
+                (
+                    time_intervals,
+                    now,
+                    start_time + datetime.timedelta(hours=interval_hour),
+                    interval_hour,
+                    interval_hour,
+                )
+            )
+
+            for case in test_cases:
+                start_of_matching_interval = TgtgCollectorBackend.get_start_of_last_interval(
+                    case[0], case[1]
+                )
+                log.print_normal(
+                    f"Start time: {case[2]}, interval: {case[3]}, offset: {case[4]} now: {case[1]},"
+                    f" start of matching interval: {start_of_matching_interval}"
+                )
+                self.assertEqual(start_of_matching_interval, case[2])
+
+    def test_time_within_divisors_of_24(self) -> None:
         test_cases: T.List[T.Tuple[datetime.datetime, int, int, float, bool]] = []
 
-        last_search_time_start = datetime.datetime(2023, 1, 1, 0, 0, 0, 0, tzinfo=time_zone)
-        intervals = [1, 2, 3, 4, 6, 8, 12, 24]
+        test_start_hour = 6
+        last_search_time_start = datetime.datetime(
+            2023, 1, 1, test_start_hour, 0, 0, 0, tzinfo=self.time_zone
+        )
+        intervals = range(25)
 
         for interval in intervals:
             test_cases.append(
                 (
                     last_search_time_start + datetime.timedelta(hours=interval),
-                    12,
+                    test_start_hour,
                     interval,
                     last_search_time_start.timestamp(),
+                    interval in TgtgCollectorBackend.INTERVALS,
+                )
+            )
+        for test_case in test_cases:
+            result = TgtgCollectorBackend.is_time_to_search(
+                now=test_case[0],
+                start_hour=test_case[1],
+                interval_hour=test_case[2],
+                last_search_time=test_case[3],
+                time_zone=self.time_zone,
+                verbose=self.verbose,
+            )
+            self.assertEqual(result, test_case[4])
+
+    def test_time_all_starts_within_interval(self) -> None:
+        test_cases: T.List[T.Tuple[datetime.datetime, int, int, float, bool]] = []
+
+        test_start_hour = 6
+        last_search_time_start = datetime.datetime(2023, 1, 1, test_start_hour, 0, 0, 0)
+        last_search_time_start = self.time_zone.localize(last_search_time_start)
+
+        for interval in TgtgCollectorBackend.INTERVALS:
+            now = last_search_time_start + datetime.timedelta(hours=interval)
+            start_hour = test_start_hour
+            interval_hour = interval
+            last_search_time_start_timestamp = last_search_time_start.timestamp()
+
+            test_cases.append(
+                (
+                    now,
+                    start_hour,
+                    interval_hour,
+                    last_search_time_start_timestamp,
                     True,
                 )
             )
-
-        # intervals = [1, 2, 3, 4, 6, 8, 12, 24]
-        # last_search_time_start = datetime.datetime(
-        #     2020, 1, 1, 0, 0, 0, 0, tzinfo=time_zone
-        # ).timestamp()
-        # last_search_times = [last_search_time_start + i * 60 * 60 for i in range(0, 24 * 2)]
-
-        # for hour in range(0, 1):
-        #     for interval_hour in intervals[:1]:
-        #         for start_hour in range(0, 1):
-        #             for last_search_time in last_search_times:
-        #                 now = datetime.datetime(2020, 1, 2, hour, 0, 0, 0, tzinfo=time_zone)
-        #                 test_cases.append(
-        #                     (
-        #                         now,
-        #                         start_hour,
-        #                         interval_hour,
-        #                         last_search_time,
-        #                         now.timestamp() - last_search_time < 0,
-        #                     )
-        #                 )
 
         for test_case in test_cases:
             result = TgtgCollectorBackend.is_time_to_search(
@@ -74,7 +125,41 @@ class TgtgTest(unittest.TestCase):
                 start_hour=test_case[1],
                 interval_hour=test_case[2],
                 last_search_time=test_case[3],
-                time_zone=time_zone,
+                time_zone=self.time_zone,
+                verbose=self.verbose,
+            )
+            self.assertEqual(result, test_case[4])
+
+    def test_time_all_starts_outside_interval(self) -> None:
+        test_cases: T.List[T.Tuple[datetime.datetime, int, int, float, bool]] = []
+
+        test_start_hour = 6
+        last_search_time_start = datetime.datetime(2023, 1, 1, test_start_hour, 0, 0, 0)
+        last_search_time_start = self.time_zone.localize(last_search_time_start)
+
+        for interval in TgtgCollectorBackend.INTERVALS:
+            now = last_search_time_start + datetime.timedelta(hours=interval - 1, minutes=30)
+            start_hour = test_start_hour
+            interval_hour = interval
+            last_search_time_start_timestamp = last_search_time_start.timestamp()
+
+            test_cases.append(
+                (
+                    now,
+                    start_hour,
+                    interval_hour,
+                    last_search_time_start_timestamp,
+                    False,
+                )
+            )
+
+        for test_case in test_cases:
+            result = TgtgCollectorBackend.is_time_to_search(
+                now=test_case[0],
+                start_hour=test_case[1],
+                interval_hour=test_case[2],
+                last_search_time=test_case[3],
+                time_zone=self.time_zone,
                 verbose=self.verbose,
             )
             self.assertEqual(result, test_case[4])

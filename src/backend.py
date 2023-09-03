@@ -11,6 +11,8 @@ from util import fmt_util, log
 
 
 class TgtgCollectorBackend:
+    INTERVALS = [1, 2, 3, 4, 6, 8, 12, 24]
+
     def __init__(
         self,
         tgtg_manager: TgtgManager,
@@ -34,7 +36,8 @@ class TgtgCollectorBackend:
             log.print_normal(f"Running search: {json.dumps(search, indent=4)}")
 
         timezone = pytz.timezone(search["time_zone"])
-        now = datetime.datetime.now(tz=timezone)
+        now = datetime.datetime.now()
+        now = timezone.localize(now)
 
         if not self.is_time_to_search(
             now, search["hour_start"], search["hour_interval"], search["last_search_time"], timezone
@@ -67,15 +70,24 @@ class TgtgCollectorBackend:
         time_zone: T.Any,
         verbose: bool = False,
     ) -> bool:
+        if interval_hour not in TgtgCollectorBackend.INTERVALS:
+            log.print_warn(f"Invalid interval: {interval_hour}")
+            return False
+
         lookback_days = 1
         start_time = now.replace(hour=start_hour, minute=0, second=0, microsecond=0)
         yesterday_start_time = start_time - datetime.timedelta(days=lookback_days)
+        num_intervals = 24 // interval_hour
+        # we want at least 2 intervals to check against
+        range_value = max((lookback_days + 1) * num_intervals, 2)
+
         interval_times = [
             yesterday_start_time + datetime.timedelta(hours=interval_hour * i)
-            for i in range(lookback_days * 24 // interval_hour)
+            for i in range(range_value)
         ]
 
-        last_search_time_datetime = datetime.datetime.fromtimestamp(last_search_time, tz=time_zone)
+        last_search_time_datetime = datetime.datetime.fromtimestamp(last_search_time)
+        last_search_time_datetime = time_zone.localize(last_search_time_datetime)
 
         if verbose:
             log.print_ok_blue("Checking if we are within the interval")
@@ -95,24 +107,9 @@ class TgtgCollectorBackend:
             log.print_warn("Last search time is in the future, skipping")
             return False
 
-        # assumes last search time is within the last 24 hours
-        start_of_last_interval = None
-        for i, interval_time in enumerate(interval_times):
-            if interval_time < now:
-                continue
-
-            if interval_time == now:
-                start_of_last_interval = interval_time
-                log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
-                break
-
-            if i == 0:
-                # should be impossible to reach based on the creation of the interval times
-                continue
-
-            start_of_last_interval = interval_times[i - 1]
-            log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
-            break
+        start_of_last_interval = TgtgCollectorBackend.get_start_of_last_interval(
+            interval_times, now, verbose
+        )
 
         if start_of_last_interval is None:
             return True
@@ -131,6 +128,41 @@ class TgtgCollectorBackend:
 
         log.print_ok_arrow("Last search is stale, running search")
         return True
+
+    @staticmethod
+    def get_start_of_last_interval(
+        interval_times: T.List[datetime.datetime], now: datetime.datetime, verbose: bool = False
+    ) -> T.Optional[datetime.datetime]:
+        # assumes last search time is within the last 24 hours
+        start_of_last_interval = None
+
+        if verbose:
+            interval_str = "\n\t".join([str(interval) for interval in interval_times])
+            log.print_normal(f"Interval times:\n\t{interval_str}")
+            log.print_normal(f"Current time: {now}")
+
+        if len(interval_times) == 1:
+            start_of_last_interval = interval_times[0]
+            log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
+            return start_of_last_interval
+
+        for i, interval_time in enumerate(interval_times):
+            if interval_time < now:
+                continue
+
+            if interval_time == now:
+                start_of_last_interval = interval_time
+                log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
+                break
+
+            if i == 0:
+                # should be impossible to reach based on the creation of the interval times
+                continue
+
+            start_of_last_interval = interval_times[i - 1]
+            log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
+            break
+        return start_of_last_interval
 
     def init(self) -> None:
         self.tgtg_manager.init()
