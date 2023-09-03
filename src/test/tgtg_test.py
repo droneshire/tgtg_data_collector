@@ -9,7 +9,7 @@ import pytz
 from backend import TgtgCollectorBackend
 from firebase.user import FirebaseUser
 from too_good_to_go.data_types import Search
-from util import file_util, log
+from util import log
 
 
 class TgtgTest(unittest.TestCase):
