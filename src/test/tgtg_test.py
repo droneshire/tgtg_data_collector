@@ -14,7 +14,7 @@ from util import log
 
 class TgtgTest(unittest.TestCase):
     test_email: str = "test@gmail.com"
-    verbose: bool = False
+    verbose: bool = True
     time_zone = pytz.timezone("America/Los_Angeles")
 
     def setUp(self) -> None:
