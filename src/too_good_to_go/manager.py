@@ -11,6 +11,9 @@ from util import file_util, log
 
 
 class TgtgManager:
+    MAX_PAGES_PER_REGION = 10
+    MAX_ITEMS_PER_PAGE = 50
+
     def __init__(self, email: str, credentials_file: str, allow_create: bool = False) -> None:
         self.credentials_file = credentials_file
         self.email = email
@@ -99,12 +102,23 @@ class TgtgManager:
             log.print_fail("Client not initialized!")
             return data_types.GetItemResponse({"results": []})
 
-        data = self.client.get_items(
-            favorites_only=False,
-            latitude=region["latitude"],
-            longitude=region["longitude"],
-            radius=region["radius"],
-        )
+        # attempt to read and concatenate all pages
+        data = data_types.GetItemResponse({"results": []})
+
+        for page in range(1, self.MAX_PAGES_PER_REGION + 1):
+            new_data = self.client.get_items(
+                favorites_only=False,
+                latitude=region["latitude"],
+                longitude=region["longitude"],
+                radius=region["radius"],
+                page_size=self.MAX_ITEMS_PER_PAGE,
+                page=page,
+            )
+            if not new_data["results"]:
+                break
+
+            data["results"] += new_data["results"]
+            time.sleep(0.5)
 
         return T.cast(data_types.GetItemResponse, data)
 
