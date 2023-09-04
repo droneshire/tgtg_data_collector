@@ -234,7 +234,7 @@ class FirebaseUser:
         search_uuid_hex = md5.hexdigest()
 
         if verbose:
-            log.print_ok(f"Search {json.dumps(search, indent=4)} has uuid {search_uuid_hex}")
+            log.print_normal(f"Search {json.dumps(search, indent=4)} has uuid {search_uuid_hex}")
 
         return search_uuid_hex
 
@@ -242,7 +242,7 @@ class FirebaseUser:
         self._update_search_field(user, search_name, "lastSearchTime", last_search_time)
 
     def update_search_email(self, user: str, search_name: str) -> None:
-        self._update_search_field(user, search_name, "sendEmail", True)
+        self._update_search_field(user, search_name, "sendEmail", False)
 
     def _update_search_field(self, user: str, search_name: str, field: str, value: T.Any) -> None:
         with self.database_cache_lock:

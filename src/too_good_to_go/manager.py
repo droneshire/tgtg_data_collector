@@ -111,7 +111,9 @@ class TgtgManager:
     def write_data_to_json(
         self, get_item_response: data_types.GetItemResponse, json_file: str
     ) -> None:
-        if os.path.exists(json_file):
+        file_util.make_sure_path_exists(json_file)
+
+        if os.path.isfile(json_file):
             with open(json_file, "r", encoding="utf-8") as infile:
                 data = json.load(infile)
         else:

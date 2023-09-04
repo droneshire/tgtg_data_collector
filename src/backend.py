@@ -10,7 +10,7 @@ import pytz
 from firebase.user import FirebaseUser
 from too_good_to_go import data_types as too_good_to_go_data_types
 from too_good_to_go.manager import TgtgManager
-from util import email, fmt_util, log
+from util import email, file_util, fmt_util, log
 
 
 class TgtgCollectorBackend:
@@ -51,16 +51,16 @@ class TgtgCollectorBackend:
 
     def _get_tgtg_data_file(self, user: str, uuid: str) -> str:
         user_dir = os.path.join(self.tgtg_data_dir, user)
-        file_util.make_sure_path_exists(user_dir)
+        file_util.make_sure_path_exists(user_dir, ignore_extension=True)
 
-        tgtg_data_json_file = os.path.join(user_dir, f"tgtg_search_{uuid}_{user}.json")
+        tgtg_data_json_file = os.path.join(user_dir, f"tgtg_search_{uuid}.json")
         return tgtg_data_json_file
 
     def _get_tgtg_csv_file(self, user: str, uuid: str) -> str:
         user_dir = os.path.join(self.tgtg_data_dir, user)
-        file_util.make_sure_path_exists(user_dir)
+        file_util.make_sure_path_exists(user_dir, ignore_extension=True)
 
-        tgtg_data_csv_file = os.path.join(user_dir, f"tgtg_search_{uuid}_{user}.csv")
+        tgtg_data_csv_file = os.path.join(user_dir, f"tgtg_search_{uuid}.csv")
         return tgtg_data_csv_file
 
     def _get_attachments(self, user: str, uuid: str) -> T.List[str]:
@@ -87,6 +87,7 @@ class TgtgCollectorBackend:
 
         message = "Hello!\n\n"
         message += "See attached results from your Too Good To Go search:\n\n"
+        message += f"Search name: {search['search_name']}\n"
         message += f"Time interval: {search['hour_interval']} hours\n"
         message += f"Start time: {search['hour_start']}\n"
         message += "Search location: \n"
@@ -94,8 +95,9 @@ class TgtgCollectorBackend:
         message += "Thanks!\n\n"
         message += "".join(food_emojis)
 
+        log.print_ok(f"Sending email to {search['user']}")
+
         if self.verbose:
-            log.print_ok(f"Sending email to {search['user']}")
             log.print_normal(f"Message: {message}")
 
         if self.dry_run:
@@ -103,7 +105,7 @@ class TgtgCollectorBackend:
             return
 
         did_send_email = True
-        attachments = self.get_attachments(search["user"], uuid)
+        attachments = self._get_attachments(search["user"], uuid)
 
         if attachments:
             did_send_email = email.send_email(
@@ -129,6 +131,8 @@ class TgtgCollectorBackend:
 
         if self.verbose:
             log.print_normal(f"Checking search: {json.dumps(search, indent=4)}")
+        else:
+            log.print_normal(f"Checking search: {search['search_name']}")
 
         if not self.is_time_to_search(
             now, search["hour_start"], search["hour_interval"], search["last_search_time"], timezone
@@ -147,8 +151,7 @@ class TgtgCollectorBackend:
             region=region
         )
 
-        if self.verbose:
-            log.print_normal(f"Found {len(results)} results")
+        log.print_normal(f"Found {len(results)} results")
 
         if len(results) == 0:
             log.print_warn("No results found, not saving anything")
