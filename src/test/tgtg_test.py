@@ -127,7 +127,6 @@ class TgtgTest(unittest.TestCase):
 
         test_start_hour = 6
         last_search_time_start = datetime.datetime(2023, 1, 1, test_start_hour, 0, 0, 0)
-        last_search_time_start = self.time_zone.localize(last_search_time_start)
 
         for interval in TgtgCollectorBackend.INTERVALS:
             now = last_search_time_start + datetime.timedelta(hours=interval)
