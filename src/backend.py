@@ -83,7 +83,7 @@ class TgtgCollectorBackend:
         if not search.get("email_data", False):
             return
 
-        food_emojis = ["🍕", "🍔", "🍟", "🍗", "🍖", "🌭", "🍿", "🍱", "🍛", "🍜", "🍝", "🍣", "🍤"]
+        food_emojis = ["🍕", "🍔", "🍟", "🍗", "🍖", "🌭", "🍿", "🍛", "🍜", "🍝", "🍤"]
 
         message = "Hello!\n\n"
         message += "See attached results from your Too Good To Go search:\n\n"
