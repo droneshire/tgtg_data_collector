@@ -96,9 +96,9 @@ class TgtgTest(unittest.TestCase):
         test_cases: T.List[T.Tuple[datetime.datetime, int, int, float, bool]] = []
 
         test_start_hour = 6
-        last_search_time_start = datetime.datetime(
-            2023, 1, 1, test_start_hour, 0, 0, 0, tzinfo=self.time_zone
-        )
+        last_search_time_start = datetime.datetime(2023, 1, 1, test_start_hour, 0, 0, 0)
+        last_search_time_start = pytz.utc.localize(last_search_time_start)
+
         intervals = range(25)
 
         for interval in intervals:
@@ -117,7 +117,6 @@ class TgtgTest(unittest.TestCase):
                 start_hour=test_case[1],
                 interval_hour=test_case[2],
                 last_search_time=test_case[3],
-                time_zone=self.time_zone,
                 verbose=self.verbose,
             )
             self.assertEqual(result, test_case[4])
@@ -127,6 +126,7 @@ class TgtgTest(unittest.TestCase):
 
         test_start_hour = 6
         last_search_time_start = datetime.datetime(2023, 1, 1, test_start_hour, 0, 0, 0)
+        last_search_time_start = pytz.utc.localize(last_search_time_start)
 
         for interval in TgtgCollectorBackend.INTERVALS:
             now = last_search_time_start + datetime.timedelta(hours=interval)
@@ -150,7 +150,6 @@ class TgtgTest(unittest.TestCase):
                 start_hour=test_case[1],
                 interval_hour=test_case[2],
                 last_search_time=test_case[3],
-                time_zone=self.time_zone,
                 verbose=self.verbose,
             )
             self.assertEqual(result, test_case[4])
@@ -160,7 +159,7 @@ class TgtgTest(unittest.TestCase):
 
         test_start_hour = 6
         last_search_time_start = datetime.datetime(2023, 1, 1, test_start_hour, 0, 0, 0)
-        last_search_time_start = self.time_zone.localize(last_search_time_start)
+        last_search_time_start = pytz.utc.localize(last_search_time_start)
 
         for interval in TgtgCollectorBackend.INTERVALS:
             now = last_search_time_start + datetime.timedelta(hours=interval - 1, minutes=30)
@@ -184,7 +183,6 @@ class TgtgTest(unittest.TestCase):
                 start_hour=test_case[1],
                 interval_hour=test_case[2],
                 last_search_time=test_case[3],
-                time_zone=self.time_zone,
                 verbose=self.verbose,
             )
             self.assertEqual(result, test_case[4])

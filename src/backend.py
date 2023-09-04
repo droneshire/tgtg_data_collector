@@ -135,7 +135,7 @@ class TgtgCollectorBackend:
             log.print_normal(f"Checking search: {search['search_name']}")
 
         if not self.is_time_to_search(
-            now, search["hour_start"], search["hour_interval"], search["last_search_time"], timezone
+            now, search["hour_start"], search["hour_interval"], search["last_search_time"]
         ):
             log.print_warn("Not within interval, skipping")
             return
@@ -199,7 +199,6 @@ class TgtgCollectorBackend:
         start_hour: int,
         interval_hour: int,
         last_search_time: float,
-        time_zone: T.Any,
         verbose: bool = False,
     ) -> bool:
         if interval_hour not in TgtgCollectorBackend.INTERVALS:
@@ -222,7 +221,7 @@ class TgtgCollectorBackend:
         ]
 
         last_search_time_datetime = datetime.datetime.fromtimestamp(last_search_time)
-        last_search_time_datetime = time_zone.localize(last_search_time_datetime)
+        last_search_time_datetime = pytz.utc.localize(last_search_time_datetime)
 
         if verbose:
             log.print_ok_blue("Checking if we are within the interval")
