@@ -189,3 +189,7 @@ class TgtgTest(unittest.TestCase):
                 verbose=self.verbose,
             )
             self.assertEqual(result, test_case[4])
+
+
+if __name__ == "__main__":
+    unittest.main()

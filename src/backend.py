@@ -49,15 +49,38 @@ class TgtgCollectorBackend:
             self._maybe_run_search(search_hash, search)
             self._maybe_send_email(search_hash, search)
 
-    def _get_tgtg_data_file(self, user, uuid) -> str:
-        tgtg_data_json_file = os.path.join(self.tgtg_data_dir, f"tgtg_search_{uuid}_{user}.json")
+    def _get_tgtg_data_file(self, user: str, uuid: str) -> str:
+        user_dir = os.path.join(self.tgtg_data_dir, user)
+        file_util.make_sure_path_exists(user_dir)
+
+        tgtg_data_json_file = os.path.join(user_dir, f"tgtg_search_{uuid}_{user}.json")
         return tgtg_data_json_file
+
+    def _get_tgtg_csv_file(self, user: str, uuid: str) -> str:
+        user_dir = os.path.join(self.tgtg_data_dir, user)
+        file_util.make_sure_path_exists(user_dir)
+
+        tgtg_data_csv_file = os.path.join(user_dir, f"tgtg_search_{uuid}_{user}.csv")
+        return tgtg_data_csv_file
+
+    def _get_attachments(self, user: str, uuid: str) -> T.List[str]:
+        attachments = []
+
+        tgtg_data_json_file = self._get_tgtg_data_file(user, uuid)
+        if os.path.isfile(tgtg_data_json_file):
+            attachments.append(tgtg_data_json_file)
+
+        tgtg_data_csv_file = self._get_tgtg_csv_file(user, uuid)
+        if os.path.isfile(tgtg_data_csv_file):
+            attachments.append(tgtg_data_csv_file)
+
+        return attachments
 
     def _maybe_send_email(self, uuid: str, search: too_good_to_go_data_types.Search) -> None:
         if self.email is None:
             return
 
-        if search.get("email_data", False):
+        if not search.get("email_data", False):
             return
 
         food_emojis = ["🍕", "🍔", "🍟", "🍗", "🍖", "🌭", "🍿", "🍱", "🍛", "🍜", "🍝", "🍣", "🍤"]
@@ -79,21 +102,20 @@ class TgtgCollectorBackend:
             log.print_bright("Dry run, not sending email")
             return
 
-        tgtg_data_json_file = self._get_tgtg_data_file(search["user"], uuid)
-
         did_send_email = True
+        attachments = self.get_attachments(search["user"], uuid)
 
-        if os.path.isfile(tgtg_data_json_file):
+        if attachments:
             did_send_email = email.send_email(
                 [self.email],
                 [search["user"]],
                 f"Too Good To Go Search Results {random.choice(food_emojis)}",
-                attachments=[tgtg_data_json_file],
+                attachments=attachments,
                 content=message,
                 verbose=self.verbose,
             )
         else:
-            log.print_warn(f"File {tgtg_data_json_file} does not exist! Not sending email")
+            log.print_warn("No attachments! Not sending email")
 
         if did_send_email:
             self.firebase_user.update_search_email(
