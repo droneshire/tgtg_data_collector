@@ -241,16 +241,33 @@ class FirebaseUser:
     def update_search_stats(
         self, user: str, search_name: str, last_search_time: float, new_results: int
     ) -> None:
-        previous_count = safe_get(
-            dict(self.database_cache[user]), "searches.numResults".split("."), 0
-        )
+        search_item = self._get_search_item(search_name)
+
+        if search_item is None:
+            log.print_warn(f"User {user} has no search named {search_name}")
+            return
+
+        previous_count = search_item.get("numResults", 0)
         new_count = previous_count + new_results
+
         self._update_search_fields(
             user, search_name, ["lastSearchTime", "numResults"], [last_search_time, new_count]
         )
 
     def update_search_email(self, user: str, search_name: str) -> None:
         self._update_search_fields(user, search_name, ["sendEmail"], [False])
+
+    def _get_search_item(self, search_name: str) -> T.Optional[firebase_data_types.Search]:
+        with self.database_cache_lock:
+            for _, info in self.database_cache.items():
+                search_items = safe_get(dict(info), "searches.items".split("."), {})
+                if not search_items:
+                    continue
+
+                if search_name in search_items:
+                    return T.cast(firebase_data_types.Search, search_items[search_name])
+
+        return None
 
     def _update_search_fields(
         self, user: str, search_name: str, fields: T.List[str], values: T.List[T.Any]
@@ -263,23 +280,24 @@ class FirebaseUser:
             old_db_user = copy.deepcopy(self.database_cache[user])
             db_user = copy.deepcopy(self.database_cache[user])
 
-            search_items = safe_get(dict(db_user), "searches.items".split("."), {})
-            if not search_items:
-                log.print_warn(f"User {user} has no searches")
-                return
+            search_item = self._get_search_item(search_name)
 
-            if search_name not in search_items:
+            if search_item is None:
                 log.print_warn(f"User {user} has no search named {search_name}")
                 return
 
             for field, value in zip(fields, values):
-                if field not in search_items[search_name]:
+                if field not in search_item:
                     log.print_warn(f"User {user} has no field {field} in search {search_name}")
                     return
 
-                search_items[search_name][field] = value
+                if field not in list(T.get_type_hints(firebase_data_types.Search).keys()):
+                    log.print_warn(f"Field {field} is not a valid search field")
+                    return
 
-            db_user["searches"]["items"] = search_items
+                search_item[field] = value  # type: ignore
+
+            db_user["searches"]["items"][search_name] = search_item
 
             self._maybe_upload_db_cache_to_firestore(user, old_db_user, db_user)
 
