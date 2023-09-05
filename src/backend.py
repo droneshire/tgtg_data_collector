@@ -151,9 +151,11 @@ class TgtgCollectorBackend:
             region=region
         )
 
-        log.print_normal(f"Found {len(results)} results")
+        num_results = len(results["results"])
 
-        if len(results) == 0:
+        log.print_normal(f"Found {num_results} results")
+
+        if num_results == 0:
             log.print_warn("No results found, not saving anything")
         else:
             tgtg_data_json_file = self._get_tgtg_data_file(search["user"], uuid)
@@ -164,8 +166,9 @@ class TgtgCollectorBackend:
         # this module doesn't really have a sense of user, just a list of searches. Would need
         # to make cache the db before running searches and then update the db after running on
         # a user by user basis instead of search by search.
+        # import pdb; pdb.set_trace()
         self.firebase_user.update_search_stats(
-            search["user"], search["search_name"], time.time(), len(results)
+            search["user"], search["search_name"], time.time(), num_results
         )
 
     def _check_to_firebase(self) -> None:
@@ -251,9 +254,13 @@ class TgtgCollectorBackend:
             return True
 
         time_since_last_interval = int(now.timestamp() - start_of_last_interval.timestamp())
+        time_since_last_search = int(now.timestamp() - last_search_time_datetime.timestamp())
         if verbose:
             log.print_normal(
                 f"Last interval: {fmt_util.get_pretty_seconds(time_since_last_interval)} ago"
+            )
+            log.print_normal(
+                f"Last search: {fmt_util.get_pretty_seconds(time_since_last_search)} ago"
             )
         if (
             start_of_last_interval is not None

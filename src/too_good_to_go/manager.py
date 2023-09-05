@@ -12,8 +12,8 @@ from util import file_util, log
 
 
 class TgtgManager:
-    MAX_PAGES_PER_REGION = 10
-    MAX_ITEMS_PER_PAGE = 50
+    MAX_PAGES_PER_REGION = 20
+    MAX_ITEMS_PER_PAGE = 100
 
     def __init__(self, email: str, credentials_file: str, allow_create: bool = False) -> None:
         self.credentials_file = credentials_file
@@ -107,6 +107,7 @@ class TgtgManager:
         data = data_types.GetItemResponse({"results": []})
 
         for page in range(1, self.MAX_PAGES_PER_REGION + 1):
+            log.print_normal(f"Searching page {page} of {self.MAX_PAGES_PER_REGION}")
             new_data = self.client.get_items(
                 favorites_only=False,
                 latitude=region["latitude"],
@@ -115,10 +116,10 @@ class TgtgManager:
                 page_size=self.MAX_ITEMS_PER_PAGE,
                 page=page,
             )
-            if not new_data["results"]:
+            if not new_data or not isinstance(new_data, list):
                 break
 
-            data["results"] += new_data["results"]
+            data["results"].extend(new_data)
             time.sleep(0.5)
 
         return T.cast(data_types.GetItemResponse, data)

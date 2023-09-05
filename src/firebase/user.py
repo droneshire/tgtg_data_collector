@@ -280,26 +280,22 @@ class FirebaseUser:
             old_db_user = copy.deepcopy(self.database_cache[user])
             db_user = copy.deepcopy(self.database_cache[user])
 
-            search_item = self._get_search_item(search_name)
+        search_item = self._get_search_item(search_name)
 
-            if search_item is None:
-                log.print_warn(f"User {user} has no search named {search_name}")
+        if search_item is None:
+            log.print_warn(f"User {user} has no search named {search_name}")
+            return
+
+        for field, value in zip(fields, values):
+            if field not in list(T.get_type_hints(firebase_data_types.Search).keys()):
+                log.print_warn(f"Field {field} is not a valid search field")
                 return
 
-            for field, value in zip(fields, values):
-                if field not in search_item:
-                    log.print_warn(f"User {user} has no field {field} in search {search_name}")
-                    return
+            search_item[field] = value  # type: ignore
 
-                if field not in list(T.get_type_hints(firebase_data_types.Search).keys()):
-                    log.print_warn(f"Field {field} is not a valid search field")
-                    return
+        db_user["searches"]["items"][search_name] = search_item
 
-                search_item[field] = value  # type: ignore
-
-            db_user["searches"]["items"][search_name] = search_item
-
-            self._maybe_upload_db_cache_to_firestore(user, old_db_user, db_user)
+        self._maybe_upload_db_cache_to_firestore(user, old_db_user, db_user)
 
     def get_searches(self) -> T.Dict[str, too_good_to_go_data_types.Search]:
         searches = {}
