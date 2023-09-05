@@ -94,5 +94,5 @@ urllib3==1.26.16
 virtualenv==20.24.4
 wrapt==1.15.0
 yagmail==0.15.293
-yaspin==2.7.1
+yaspin==2.5.0
 zipp==3.16.2
