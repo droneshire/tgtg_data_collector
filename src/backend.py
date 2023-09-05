@@ -135,7 +135,11 @@ class TgtgCollectorBackend:
             log.print_normal(f"Checking search: {search['search_name']}")
 
         if not self.is_time_to_search(
-            now, search["hour_start"], search["hour_interval"], search["last_search_time"]
+            now,
+            search["hour_start"],
+            search["hour_interval"],
+            search["last_search_time"],
+            verbose=self.verbose,
         ):
             log.print_warn("Not within interval, skipping")
             return
@@ -226,7 +230,6 @@ class TgtgCollectorBackend:
         ]
 
         last_search_time_datetime = datetime.datetime.fromtimestamp(last_search_time)
-        last_search_time_datetime = pytz.utc.localize(last_search_time_datetime)
 
         if verbose:
             log.print_ok_blue("Checking if we are within the interval")
@@ -242,7 +245,7 @@ class TgtgCollectorBackend:
                 f"Time since interval time: {fmt_util.get_pretty_seconds(time_since_start_time)}"
             )
 
-        if last_search_time_datetime > now:
+        if last_search_time > now.timestamp():
             log.print_warn("Last search time is in the future, skipping")
             return False
 
@@ -254,7 +257,7 @@ class TgtgCollectorBackend:
             return True
 
         time_since_last_interval = int(now.timestamp() - start_of_last_interval.timestamp())
-        time_since_last_search = int(now.timestamp() - last_search_time_datetime.timestamp())
+        time_since_last_search = int(now.timestamp() - last_search_time)
         if verbose:
             log.print_normal(
                 f"Last interval: {fmt_util.get_pretty_seconds(time_since_last_interval)} ago"
@@ -264,7 +267,7 @@ class TgtgCollectorBackend:
             )
         if (
             start_of_last_interval is not None
-            and last_search_time_datetime >= start_of_last_interval
+            and last_search_time >= start_of_last_interval.timestamp()
         ):
             if verbose:
                 log.print_normal("Last search time is in the window, skipping")
