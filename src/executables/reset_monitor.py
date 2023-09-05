@@ -12,6 +12,7 @@ import sys
 
 import dotenv
 
+from constants import PROJECT_NAME
 from firebase.admin import FirebaseAdmin
 from util import log, wait
 
@@ -65,7 +66,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description=__doc__)
 
-    log_dir = log.get_logging_dir("inventory_manager")
+    log_dir = log.get_logging_dir(PROJECT_NAME)
     parser.add_argument("--log-dir", default=log_dir)
 
     pidfile = os.environ.get("RESET_PIDFILE", "reset_server.pid")
@@ -73,7 +74,7 @@ def main() -> None:
     with open(pidfile, "w", encoding="utf-8") as outfile:
         outfile.write(str(os.getpid()))
 
-    credentials_file = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")
+    credentials_file = os.environ.get("FIREBASE_CREDENTIALS_FILE", "")
     firebase_server: FirebaseAdmin = FirebaseAdmin(credentials_file=credentials_file)
 
     try:

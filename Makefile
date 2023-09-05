@@ -52,6 +52,9 @@ run_worker_prod:
 create_account:
 	$(RUN_PY) executables.tgtg_api_setup --email $(email)
 
+reset_monitor:
+	$(RUN_PY) executables.reset_monitor
+
 clean:
 	rm -rf *.pickle
 
