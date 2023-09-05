@@ -164,7 +164,9 @@ class TgtgCollectorBackend:
         # this module doesn't really have a sense of user, just a list of searches. Would need
         # to make cache the db before running searches and then update the db after running on
         # a user by user basis instead of search by search.
-        self.firebase_user.update_search_time(search["user"], search["search_name"], time.time())
+        self.firebase_user.update_search_stats(
+            search["user"], search["search_name"], time.time(), len(results)
+        )
 
     def _check_to_firebase(self) -> None:
         self.firebase_user.health_ping()

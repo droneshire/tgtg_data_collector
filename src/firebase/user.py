@@ -238,13 +238,23 @@ class FirebaseUser:
 
         return search_uuid_hex
 
-    def update_search_time(self, user: str, search_name: str, last_search_time: float) -> None:
-        self._update_search_field(user, search_name, "lastSearchTime", last_search_time)
+    def update_search_stats(
+        self, user: str, search_name: str, last_search_time: float, new_results: int
+    ) -> None:
+        previous_count = safe_get(
+            dict(self.database_cache[user]), "searches.numResults".split("."), 0
+        )
+        new_count = previous_count + new_results
+        self._update_search_fields(
+            user, search_name, ["lastSearchTime", "numResults"], [last_search_time, new_count]
+        )
 
     def update_search_email(self, user: str, search_name: str) -> None:
-        self._update_search_field(user, search_name, "sendEmail", False)
+        self._update_search_fields(user, search_name, ["sendEmail"], [False])
 
-    def _update_search_field(self, user: str, search_name: str, field: str, value: T.Any) -> None:
+    def _update_search_fields(
+        self, user: str, search_name: str, fields: T.List[str], values: T.List[T.Any]
+    ) -> None:
         with self.database_cache_lock:
             if user not in self.database_cache:
                 log.print_warn(f"User {user} not in database cache")
@@ -262,11 +272,12 @@ class FirebaseUser:
                 log.print_warn(f"User {user} has no search named {search_name}")
                 return
 
-            if field not in search_items[search_name]:
-                log.print_warn(f"User {user} has no field {field} in search {search_name}")
-                return
+            for field, value in zip(fields, values):
+                if field not in search_items[search_name]:
+                    log.print_warn(f"User {user} has no field {field} in search {search_name}")
+                    return
 
-            search_items[search_name][field] = value
+                search_items[search_name][field] = value
 
             db_user["searches"]["items"] = search_items
 
