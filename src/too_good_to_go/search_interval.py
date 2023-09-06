@@ -99,9 +99,10 @@ def get_interval_times_from_start_time(
             f"{yesterday_start_time}"
         )
         time_since_interval_start_time = int(now_uclock - yesterday_start_time)
-        log.print_normal(
-            f"Time since interval time: {fmt_util.get_pretty_seconds(time_since_interval_start_time)}"
+        time_since_interval_start_time_pretty = fmt_util.get_pretty_seconds(
+            time_since_interval_start_time
         )
+        log.print_normal(f"Time since interval time: {time_since_interval_start_time_pretty}")
 
     return interval_times
 

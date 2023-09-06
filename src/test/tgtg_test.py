@@ -106,7 +106,7 @@ class TgtgTest(unittest.TestCase):
         first_interval = 1672495200.0
         self.assertEqual(intervals[0], first_interval)
 
-        for i in range(len(intervals)):
+        for i, _ in enumerate(intervals):
             if i == 0:
                 continue
             self.assertEqual(intervals[i], intervals[i - 1] + SECONDS_PER_HOUR * interval)
