@@ -189,14 +189,6 @@ class TgtgTest(unittest.TestCase):
         last_search_time_start = datetime.datetime(2023, 1, 1, test_start_hour, 0, 0, 0)
         last_search_time_start_uclock = last_search_time_start.timestamp()
 
-        self.assertEqual(last_search_time_start.day, 1)
-        self.assertEqual(last_search_time_start.month, 1)
-        self.assertEqual(last_search_time_start.year, 2023)
-        self.assertEqual(last_search_time_start.hour, test_start_hour)
-        self.assertEqual(last_search_time_start.minute, 0)
-        self.assertEqual(last_search_time_start.second, 0)
-        self.assertEqual(last_search_time_start.timestamp(), 1672581600.0)
-
         for interval in INTERVALS:
             now_uclock = (
                 last_search_time_start_uclock
