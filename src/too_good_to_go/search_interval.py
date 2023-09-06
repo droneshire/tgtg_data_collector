@@ -77,6 +77,20 @@ def get_localized_start_time(
     return start_time_uclock
 
 
+def get_interval_times_from_start_time(
+    start_time_uclock: float, interval_hour: int, lookback_days: int
+) -> T.List[float]:
+    yesterday_start_time = start_time_uclock - SECONDS_PER_DAY * lookback_days
+    num_intervals = 24 // interval_hour
+    # we want at least 2 intervals to check against
+    range_value = max((lookback_days + 1) * num_intervals, 2)
+
+    interval_times = [
+        yesterday_start_time + i * SECONDS_PER_HOUR * interval_hour for i in range(range_value)
+    ]
+    return interval_times
+
+
 def is_time_to_search(
     now_uclock: float,
     start_hour: int,
@@ -93,14 +107,9 @@ def is_time_to_search(
 
     start_time_uclock = get_localized_start_time(now_uclock, start_hour, time_zone, verbose)
 
-    yesterday_start_time = start_time_uclock - SECONDS_PER_DAY * lookback_days
-    num_intervals = 24 // interval_hour
-    # we want at least 2 intervals to check against
-    range_value = max((lookback_days + 1) * num_intervals, 2)
-
-    interval_times = [
-        yesterday_start_time + i * SECONDS_PER_HOUR * interval_hour for i in range(range_value)
-    ]
+    interval_times = get_interval_times_from_start_time(
+        start_time_uclock, interval_hour, lookback_days
+    )
 
     last_search_time_datetime = datetime.datetime.fromtimestamp(last_search_time)
 
