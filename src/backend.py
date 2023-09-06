@@ -1,4 +1,3 @@
-import datetime
 import json
 import os
 import random
@@ -126,8 +125,6 @@ class TgtgCollectorBackend:
 
     def _maybe_run_search(self, uuid: str, search: too_good_to_go_data_types.Search) -> None:
         timezone = pytz.timezone(search["time_zone"])
-        now = datetime.datetime.now()
-        now = timezone.localize(now)
 
         if self.verbose:
             log.print_normal(f"Checking search: {json.dumps(search, indent=4)}")
@@ -135,10 +132,11 @@ class TgtgCollectorBackend:
             log.print_normal(f"Checking search: {search['search_name']}")
 
         if not is_time_to_search(
-            now,
+            time.time(),
             search["hour_start"],
             search["hour_interval"],
             search["last_search_time"],
+            timezone,
             verbose=self.verbose,
         ):
             log.print_warn("Not within interval, skipping")
