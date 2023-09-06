@@ -20,7 +20,7 @@ from util import log
 
 class TgtgTest(unittest.TestCase):
     test_email: str = "test@gmail.com"
-    verbose: bool = True
+    verbose: bool = False
     time_zone = pytz.timezone("America/Los_Angeles")
     time_zone_other = pytz.timezone("America/New_York")
 
