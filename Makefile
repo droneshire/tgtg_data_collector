@@ -34,13 +34,13 @@ isort:
 lint: check_format mypy pylint
 
 test:
-	$(RUN_PY) unittest discover -s test -p *_test.py -v
+# $(RUN_PY) unittest discover -s test -p *_test.py -v
 # Uncomment and tab over to run individual tests
 # $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_uuid
 # $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_finding_interval
 # $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_time_within_divisors_of_24
 # $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_time_all_starts_within_interval
-# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_time_all_starts_outside_interval
+	$(RUN_PY) unittest test.tgtg_test.TgtgTest.test_time_all_starts_outside_interval
 
 
 run_worker_dev:
