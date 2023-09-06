@@ -12,6 +12,7 @@ from too_good_to_go.search_interval import (
     INTERVALS,
     SECONDS_PER_HOUR,
     SECONDS_PER_MINUTE,
+    get_localized_start_time,
     get_start_of_last_interval,
     is_time_to_search,
 )
@@ -68,6 +69,19 @@ class TgtgTest(unittest.TestCase):
         start_time_other_uclock = start_time_other.timestamp()
 
         self.assertAlmostEqual(start_time_local_uclock - start_time_other_uclock, 3 * 60 * 60, 1)
+
+    def test_conversion_timezone(self) -> None:
+        now = datetime.datetime(2023, 1, 1, 0, 0, 0, 0)
+        now_uclock = now.timestamp()
+
+        start_time = get_localized_start_time(
+            now_uclock=now_uclock,
+            start_hour=6,
+            time_zone=self.time_zone,
+            verbose=self.verbose,
+        )
+        self.assertEqual(start_time, 1672581600.0)
+
 
     def test_finding_interval(self) -> None:
         test_cases: T.List[T.Tuple[T.List[float], float, float, int, int]] = []
