@@ -96,7 +96,8 @@ def is_time_to_search(
         log.print_normal(f"Today start time: {start_time}, {start_time.timestamp()}")
         log.print_normal(f"Start hour: {start_hour}")
         log.print_normal(
-            f"Interval start time: {datetime.datetime.fromtimestamp(yesterday_start_time)}"
+            f"Interval start time: {datetime.datetime.fromtimestamp(yesterday_start_time)}, "
+            f"{yesterday_start_time}"
         )
         log.print_normal(f"Last search time: {last_search_time_datetime}")
         log.print_normal(f"Interval: {interval_hour}")
