@@ -97,7 +97,9 @@ class TgtgTest(unittest.TestCase):
         lookback_days = 1
         interval = 6
         total_intervals = 24 // interval * (lookback_days + 1)
-        intervals = get_interval_times_from_start_time(start_time, interval, lookback_days)
+        intervals = get_interval_times_from_start_time(
+            now_uclock, start_time, interval, lookback_days
+        )
 
         self.assertEqual(len(intervals), total_intervals)
 

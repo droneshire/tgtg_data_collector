@@ -39,6 +39,7 @@ test:
 # $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_uuid
 # $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_finding_interval
 	$(RUN_PY) unittest test.tgtg_test.TgtgTest.test_conversion_timezone
+# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_get_intervals_from_start_time
 # $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_timezone_changes
 # $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_time_within_divisors_of_24
 # $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_time_all_starts_within_interval

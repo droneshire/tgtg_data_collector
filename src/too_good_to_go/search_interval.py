@@ -78,7 +78,11 @@ def get_localized_start_time(
 
 
 def get_interval_times_from_start_time(
-    start_time_uclock: float, interval_hour: int, lookback_days: int
+    now_uclock: float,
+    start_time_uclock: float,
+    interval_hour: int,
+    lookback_days: int,
+    verbose: bool = False,
 ) -> T.List[float]:
     yesterday_start_time = start_time_uclock - SECONDS_PER_DAY * lookback_days
     num_intervals = 24 // interval_hour
@@ -88,6 +92,17 @@ def get_interval_times_from_start_time(
     interval_times = [
         yesterday_start_time + i * SECONDS_PER_HOUR * interval_hour for i in range(range_value)
     ]
+
+    if verbose:
+        log.print_normal(
+            f"Interval start time: {datetime.datetime.fromtimestamp(yesterday_start_time)}, "
+            f"{yesterday_start_time}"
+        )
+        time_since_interval_start_time = int(now_uclock - yesterday_start_time)
+        log.print_normal(
+            f"Time since interval time: {fmt_util.get_pretty_seconds(time_since_interval_start_time)}"
+        )
+
     return interval_times
 
 
@@ -99,6 +114,9 @@ def is_time_to_search(
     time_zone: T.Any,
     verbose: bool = False,
 ) -> bool:
+    if verbose:
+        log.print_ok_blue("Checking if we are within the interval")
+
     if interval_hour not in INTERVALS:
         log.print_warn(f"Invalid interval: {interval_hour}. " f"Valid intervals: {INTERVALS}")
         return False
@@ -108,25 +126,16 @@ def is_time_to_search(
     start_time_uclock = get_localized_start_time(now_uclock, start_hour, time_zone, verbose)
 
     interval_times = get_interval_times_from_start_time(
-        start_time_uclock, interval_hour, lookback_days
+        now_uclock, start_time_uclock, interval_hour, lookback_days, verbose
     )
 
     last_search_time_datetime = datetime.datetime.fromtimestamp(last_search_time)
 
     if verbose:
-        log.print_ok_blue("Checking if we are within the interval")
-        log.print_normal(
-            f"Interval start time: {datetime.datetime.fromtimestamp(yesterday_start_time)}, "
-            f"{yesterday_start_time}"
-        )
         log.print_normal(f"Last search time: {last_search_time_datetime}")
         log.print_normal(f"Interval: {interval_hour}")
         time_since_update = int(now_uclock - last_search_time)
         log.print_normal(f"Last search: {fmt_util.get_pretty_seconds(time_since_update)} ago")
-        time_since_interval_start_time = int(now_uclock - yesterday_start_time)
-        log.print_normal(
-            f"Time since interval time: {fmt_util.get_pretty_seconds(time_since_interval_start_time)}"
-        )
 
     if last_search_time > now_uclock:
         log.print_warn("Last search time is in the future, skipping")
