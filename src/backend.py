@@ -139,8 +139,16 @@ class TgtgCollectorBackend:
             timezone,
             verbose=self.verbose,
         ):
-            log.print_warn("Not within interval, skipping")
+            log.print_warn("Not within interval, skipping search.")
+            log.print_normal("Inputs:")
+            log.print_normal(f"Time: {time.time()}")
+            log.print_normal(f"Start hour: {search['hour_start']}")
+            log.print_normal(f"Interval hour: {search['hour_interval']}")
+            log.print_normal(f"Last search time: {search['last_search_time']}")
+            log.print_normal(f"Timezone: {timezone}")
             return
+        else:
+            log.print_ok("Within interval, running search.")
 
         region_dict = search["region"]
 
