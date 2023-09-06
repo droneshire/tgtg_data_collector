@@ -6,9 +6,9 @@ import unittest
 
 import pytz
 
-from backend import TgtgCollectorBackend
 from firebase.user import FirebaseUser
 from too_good_to_go.data_types import Search
+from too_good_to_go.search_interval import INTERVALS, get_start_of_last_interval, is_time_to_search
 from util import log
 
 
@@ -59,7 +59,7 @@ class TgtgTest(unittest.TestCase):
         start_time = datetime.datetime(2023, 1, 1, 0, 0, 0, 0)
         start_time = self.time_zone.localize(start_time)
 
-        for interval_hour in TgtgCollectorBackend.INTERVALS:
+        for interval_hour in INTERVALS:
             time_intervals = [
                 start_time + datetime.timedelta(hours=i * interval_hour)
                 for i in range(max(24 // interval_hour, 2))
@@ -81,9 +81,7 @@ class TgtgTest(unittest.TestCase):
             )
 
             for case in test_cases:
-                start_of_matching_interval = TgtgCollectorBackend.get_start_of_last_interval(
-                    case[0], case[1]
-                )
+                start_of_matching_interval = get_start_of_last_interval(case[0], case[1])
                 if self.verbose:
                     log.print_normal(
                         f"Start time: {case[2]}, interval: {case[3]}, "
@@ -108,11 +106,11 @@ class TgtgTest(unittest.TestCase):
                     test_start_hour,
                     interval,
                     last_search_time_start.timestamp(),
-                    interval in TgtgCollectorBackend.INTERVALS,
+                    interval in INTERVALS,
                 )
             )
         for test_case in test_cases:
-            result = TgtgCollectorBackend.is_time_to_search(
+            result = is_time_to_search(
                 now=test_case[0],
                 start_hour=test_case[1],
                 interval_hour=test_case[2],
@@ -128,7 +126,7 @@ class TgtgTest(unittest.TestCase):
         last_search_time_start = datetime.datetime(2023, 1, 1, test_start_hour, 0, 0, 0)
         last_search_time_start = pytz.utc.localize(last_search_time_start)
 
-        for interval in TgtgCollectorBackend.INTERVALS:
+        for interval in INTERVALS:
             now = last_search_time_start + datetime.timedelta(hours=interval)
             start_hour = test_start_hour
             interval_hour = interval
@@ -145,7 +143,7 @@ class TgtgTest(unittest.TestCase):
             )
 
         for test_case in test_cases:
-            result = TgtgCollectorBackend.is_time_to_search(
+            result = is_time_to_search(
                 now=test_case[0],
                 start_hour=test_case[1],
                 interval_hour=test_case[2],
@@ -169,7 +167,7 @@ class TgtgTest(unittest.TestCase):
         self.assertEqual(last_search_time_start.second, 0)
         self.assertEqual(last_search_time_start.timestamp(), 1672581600.0)
 
-        for interval in TgtgCollectorBackend.INTERVALS:
+        for interval in INTERVALS:
             now = last_search_time_start_localized + datetime.timedelta(
                 hours=interval - 1, minutes=30
             )
@@ -188,7 +186,7 @@ class TgtgTest(unittest.TestCase):
             )
 
         for test_case in test_cases:
-            result = TgtgCollectorBackend.is_time_to_search(
+            result = is_time_to_search(
                 now=test_case[0],
                 start_hour=test_case[1],
                 interval_hour=test_case[2],

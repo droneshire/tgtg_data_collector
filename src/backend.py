@@ -10,11 +10,11 @@ import pytz
 from firebase.user import FirebaseUser
 from too_good_to_go import data_types as too_good_to_go_data_types
 from too_good_to_go.manager import TgtgManager
+from too_good_to_go.search_interval import is_time_to_search
 from util import email, file_util, fmt_util, log
 
 
 class TgtgCollectorBackend:
-    INTERVALS = [1, 2, 3, 4, 6, 8, 12, 24]
     TIME_BETWEEN_FIREBASE_QUERIES = {
         "prod": 60 * 60 * 24,
         "dev": 60 * 1,
@@ -134,7 +134,7 @@ class TgtgCollectorBackend:
         else:
             log.print_normal(f"Checking search: {search['search_name']}")
 
-        if not self.is_time_to_search(
+        if not is_time_to_search(
             now,
             search["hour_start"],
             search["hour_interval"],
@@ -201,118 +201,6 @@ class TgtgCollectorBackend:
             )
             next_update_str = fmt_util.get_pretty_seconds(time_till_next_update)
             log.print_normal(f"Next firebase manual refresh in {next_update_str}")
-
-    @staticmethod
-    def is_time_to_search(
-        now: datetime.datetime,
-        start_hour: int,
-        interval_hour: int,
-        last_search_time: float,
-        verbose: bool = False,
-    ) -> bool:
-        if interval_hour not in TgtgCollectorBackend.INTERVALS:
-            log.print_warn(
-                f"Invalid interval: {interval_hour}. "
-                f"Valid intervals: {TgtgCollectorBackend.INTERVALS}"
-            )
-            return False
-
-        lookback_days = 1
-        start_time = now.replace(hour=start_hour, minute=0, second=0, microsecond=0)
-        yesterday_start_time = start_time - datetime.timedelta(days=lookback_days)
-        num_intervals = 24 // interval_hour
-        # we want at least 2 intervals to check against
-        range_value = max((lookback_days + 1) * num_intervals, 2)
-
-        interval_times = [
-            yesterday_start_time + datetime.timedelta(hours=interval_hour * i)
-            for i in range(range_value)
-        ]
-
-        last_search_time_datetime = datetime.datetime.fromtimestamp(last_search_time)
-
-        if verbose:
-            log.print_ok_blue("Checking if we are within the interval")
-            log.print_normal(f"Current time: {now}")
-            log.print_normal(f"Today start time: {start_time}")
-            log.print_normal(f"Interval start time: {yesterday_start_time}")
-            log.print_normal(f"Last search time: {last_search_time_datetime}")
-            log.print_normal(f"Interval: {interval_hour}")
-            time_since_update = int(now.timestamp() - last_search_time)
-            log.print_normal(f"Last search: {fmt_util.get_pretty_seconds(time_since_update)} ago")
-            time_since_start_time = int(now.timestamp() - yesterday_start_time.timestamp())
-            log.print_normal(
-                f"Time since interval time: {fmt_util.get_pretty_seconds(time_since_start_time)}"
-            )
-
-        if last_search_time > now.timestamp():
-            log.print_warn("Last search time is in the future, skipping")
-            return False
-
-        start_of_last_interval = TgtgCollectorBackend.get_start_of_last_interval(
-            interval_times, now, verbose
-        )
-
-        if start_of_last_interval is None:
-            return True
-
-        time_since_last_interval = int(now.timestamp() - start_of_last_interval.timestamp())
-        time_since_last_search = int(now.timestamp() - last_search_time)
-        if verbose:
-            log.print_normal(
-                f"Last interval: {fmt_util.get_pretty_seconds(time_since_last_interval)} ago"
-            )
-            log.print_normal(
-                f"Last search: {fmt_util.get_pretty_seconds(time_since_last_search)} ago"
-            )
-        if (
-            start_of_last_interval is not None
-            and last_search_time >= start_of_last_interval.timestamp()
-        ):
-            if verbose:
-                log.print_normal("Last search time is in the window, skipping")
-            return False
-
-        log.print_ok_arrow("Last search is stale, running search")
-        return True
-
-    @staticmethod
-    def get_start_of_last_interval(
-        interval_times: T.List[datetime.datetime], now: datetime.datetime, verbose: bool = False
-    ) -> T.Optional[datetime.datetime]:
-        # assumes last search time is within the last 24 hours
-        start_of_last_interval = None
-
-        if verbose:
-            interval_str = "\n\t".join([str(interval) for interval in interval_times])
-            log.print_normal(f"Interval times:\n\t{interval_str}")
-            log.print_normal(f"Current time: {now}")
-
-        if len(interval_times) == 1:
-            start_of_last_interval = interval_times[0]
-            if verbose:
-                log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
-            return start_of_last_interval
-
-        for i, interval_time in enumerate(interval_times):
-            if interval_time < now:
-                continue
-
-            if interval_time == now:
-                start_of_last_interval = interval_time
-                if verbose:
-                    log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
-                break
-
-            if i == 0:
-                # should be impossible to reach based on the creation of the interval times
-                continue
-
-            start_of_last_interval = interval_times[i - 1]
-            if verbose:
-                log.print_ok_blue_arrow(f"Last interval: {start_of_last_interval}")
-            break
-        return start_of_last_interval
 
     def init(self) -> None:
         self.tgtg_manager.init()
