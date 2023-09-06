@@ -59,7 +59,10 @@ def get_start_of_last_interval(
 
     return start_of_last_interval
 
-def get_localized_start_time(now_uclock: float, start_hour: int, time_zone: T.Any, verbose: bool = False) -> float:
+
+def get_localized_start_time(
+    now_uclock: float, start_hour: int, time_zone: T.Any, verbose: bool = False
+) -> float:
     now = datetime.datetime.fromtimestamp(now_uclock)
     now = time_zone.localize(now)
 
@@ -72,6 +75,7 @@ def get_localized_start_time(now_uclock: float, start_hour: int, time_zone: T.An
         log.print_normal(f"Start hour: {start_hour}")
 
     return start_time_uclock
+
 
 def is_time_to_search(
     now_uclock: float,

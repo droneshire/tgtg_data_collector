@@ -82,7 +82,6 @@ class TgtgTest(unittest.TestCase):
         )
         self.assertEqual(start_time, 1672581600.0)
 
-
     def test_finding_interval(self) -> None:
         test_cases: T.List[T.Tuple[T.List[float], float, float, int, int]] = []
 
