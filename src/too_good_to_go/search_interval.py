@@ -94,6 +94,7 @@ def is_time_to_search(
         log.print_ok_blue("Checking if we are within the interval")
         log.print_normal(f"Current time: {now}")
         log.print_normal(f"Today start time: {start_time}")
+        log.print_normal(f"Start hour: {start_hour}")
         log.print_normal(
             f"Interval start time: {datetime.datetime.fromtimestamp(yesterday_start_time)}"
         )
