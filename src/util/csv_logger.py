@@ -52,13 +52,19 @@ class CsvLogger:
         if self.dry_run:
             return
 
-        with open(self.csv_file, "r+", encoding="utf-8") as file:
-            reader = csv.reader(file)
-            first_row = next(reader, None)
-
-            # Check if header is absent or different
-            if not first_row or set(first_row) != set(self.header):
-                file.seek(0)
+        if not os.path.isfile(self.csv_file):
+            with open(self.csv_file, "w", encoding="utf-8") as file:
                 writer = csv.writer(file)
                 writer.writerow(self.header)
+            return
+
+        with open(self.csv_file, "r+", encoding="utf-8") as file:
+            reader = list(csv.reader(file))
+
+            if len(reader) == 0 or len(self.header) != len(
+                [i for i in reader[0] if i in self.header]
+            ):
+                file.seek(0)
                 file.truncate()
+                writer = csv.writer(file)
+                writer.writerow(self.header)
