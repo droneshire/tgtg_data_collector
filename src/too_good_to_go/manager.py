@@ -163,21 +163,12 @@ class TgtgManager:
         flattened["sold_out_at"] = safe_get(data, "sold_out_at".split("."), "")
         flattened["item_type"] = safe_get(data, "item_type".split("."), "")
         flattened["item_category"] = safe_get(data, "item.item_category".split("."), "")
-        flattened["price_including_taxes:code"] = safe_get(
-            data, "item.price_including_taxes.code".split("."), ""
-        )
-        flattened["price_including_taxes:minor_units"] = safe_get(
-            data, "item.price_including_taxes.minor_units".split("."), ""
-        )
-        flattened["price_including_taxes:decimals"] = safe_get(
-            data, "item.price_including_taxes.decimals".split("."), ""
-        )
 
-        def convert_to_price(data: T.Dict[str, T.Any]) -> str:
+        def convert_to_price(data: T.Dict[str, T.Any], field: str) -> str:
             if not data:
                 return ""
 
-            value_including_taxes_dict = safe_get(data, "item.value_including_taxes".split("."), {})
+            value_including_taxes_dict = safe_get(data, field.split("."), {})
 
             if not value_including_taxes_dict:
                 return ""
@@ -188,7 +179,8 @@ class TgtgManager:
 
             return str(float(minor_units) / (10 * decimals)) + " " + code
 
-        flattened["value_including_taxes"] = convert_to_price(data)
+        flattened["price_including_taxes"] = convert_to_price(data, "item.price_including_taxes")
+        flattened["value_including_taxes"] = convert_to_price(data, "item.value_including_taxes")
 
         flattened["average_overall_rating:average_overall_rating"] = safe_get(
             data, "item.average_overall_rating.average_overall_rating".split("."), ""
