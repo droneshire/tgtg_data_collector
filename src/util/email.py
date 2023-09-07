@@ -78,6 +78,17 @@ def send_email(
     for email in emails:
         if email["quiet"]:
             continue
+
+        if attachments:
+            attachment_count = 0
+            for attachment in attachments:
+                attachment_count += 1 if os.path.exists(attachment) else 0
+            if attachment_count != len(attachments):
+                log.print_fail(
+                    f"Failed to send email alert for {' '.join(to_addresses)} "
+                    f"because not all attachments exist!"
+                )
+                return False
         try:
             send_email_raw(
                 email,
@@ -88,8 +99,11 @@ def send_email(
                 verbose=verbose,
             )
             return True
-        except:  # pylint: disable=bare-except
-            pass
+        except Exception as exception:
+            log.print_fail(
+                f"Failed to send email alert for {' '.join(to_addresses)} "
+                f"because of exception: {exception}"
+            )
+            continue
 
-    log.print_fail(f"Failed to send email alert for {' '.join(to_addresses)}")
     return False
