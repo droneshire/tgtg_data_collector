@@ -1,6 +1,8 @@
 import datetime
 import typing as T
 
+from constants import INTERVALS
+
 
 class HealthMonitor(T.TypedDict):
     reset: bool
@@ -68,7 +70,7 @@ NULL_USER = User(
     ),
     searches=Searches(
         items={},
-        hoursBetweenCollection=3,
-        collectionTimeStart=0,
+        hoursBetweenCollection=min(INTERVALS),
+        collectionTimeStart=6,
     ),
 )
