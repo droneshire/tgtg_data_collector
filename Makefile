@@ -47,7 +47,7 @@ test:
 
 
 run_worker_dev:
-	$(RUN_PY) executables.tgtg_worker --mode dev --time-between-loop 60 --verbose
+	$(RUN_PY) executables.tgtg_worker --mode dev --time-between-loop 15 --verbose
 
 run_worker_prod:
 	$(RUN_PY) executables.tgtg_worker --mode prod

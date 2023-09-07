@@ -26,22 +26,22 @@ class CsvLogger:
             log.print_bold(
                 f"Writing stats to {self.csv_file}:\nStats:\n{json.dumps(data, indent=4)}"
             )
-        with open(self.csv_file, "a") as appendfile:
+        with open(self.csv_file, "a", encoding="utf-8") as appendfile:
             csv_writer = csv.writer(appendfile)
 
             row = [""] * len(self.header)
-            for k, v in data.items():
-                inx = self.col_map.get(k.lower(), None)
-                if inx is None:
-                    continue
-                row[inx] = v
+            for key, value in data.items():
+                try:
+                    row[self.col_map[key.lower()]] = value
+                except KeyError:
+                    pass
             csv_writer.writerow(row)
 
     def read(self) -> T.List[T.List[T.Any]]:
         if not os.path.isfile(self.csv_file):
             return []
 
-        with open(self.csv_file) as infile:
+        with open(self.csv_file, encoding="utf-8") as infile:
             reader = list(csv.reader(infile))
         return reader[1:]
 
@@ -52,15 +52,13 @@ class CsvLogger:
         if self.dry_run:
             return
 
-        reader = []
-        if os.path.isfile(self.csv_file):
-            with open(self.csv_file) as infile:
-                reader = list(csv.reader(infile))
+        with open(self.csv_file, "r+", encoding="utf-8") as file:
+            reader = csv.reader(file)
+            first_row = next(reader, None)
 
-        if len(reader) == 0 or len(self.header) != len([i for i in reader[0] if i in self.header]):
-            reader.insert(0, self.header)
-
-        with open(self.csv_file, "w") as outfile:
-            writer = csv.writer(outfile)
-            for row in reader:
-                writer.writerow(row)
+            # Check if header is absent or different
+            if not first_row or set(first_row) != set(self.header):
+                file.seek(0)
+                writer = csv.writer(file)
+                writer.writerow(self.header)
+                file.truncate()
