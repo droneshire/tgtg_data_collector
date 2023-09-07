@@ -1,9 +1,9 @@
 import datetime
 import typing as T
 
+from constants import INTERVALS
 from util import fmt_util, log
 
-INTERVALS = [1, 2, 3, 4, 6, 8, 12, 24]
 LOOKBACK_DAYS = 1
 SECONDS_PER_DAY = 60 * 60 * 24
 SECONDS_PER_HOUR = 60 * 60

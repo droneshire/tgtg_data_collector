@@ -141,3 +141,21 @@ class TgtgManager:
 
         with open(json_file, "w", encoding="utf-8") as outfile:
             json.dump(data, outfile, indent=4)
+
+    def write_data_to_csv(
+        self, get_item_response: data_types.GetItemResponse, csv_file: str
+    ) -> None:
+        file_util.make_sure_path_exists(csv_file)
+
+        if os.path.isfile(csv_file):
+            with open(csv_file, "r", encoding="utf-8") as infile:
+                data = json.load(infile)
+        else:
+            data = {}
+
+        date_formated = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+        data[date_formated] = get_item_response
+
+        with open(csv_file, "w", encoding="utf-8") as outfile:
+            json.dump(data, outfile, indent=4)
