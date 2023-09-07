@@ -8,7 +8,8 @@ import tgtg.exceptions as tgtg_exceptions
 from tgtg import TgtgClient
 
 from too_good_to_go import data_types
-from util import file_util, log
+from util import csv_logger, file_util, log
+from util.dict_util import safe_get
 
 
 class TgtgManager:
@@ -125,7 +126,7 @@ class TgtgManager:
         return T.cast(data_types.GetItemResponse, data)
 
     def write_data_to_json(
-        self, get_item_response: data_types.GetItemResponse, json_file: str
+        self, get_item_response: data_types.GetItemResponse, json_file: str, time_zone: T.Any
     ) -> None:
         file_util.make_sure_path_exists(json_file)
 
@@ -135,27 +136,85 @@ class TgtgManager:
         else:
             data = {}
 
-        date_formated = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        date_now = datetime.datetime.now()
+        date_localized = time_zone.localize(date_now)
+        date_formated = date_localized.strftime("%Y-%m-%d %H:%M:%S")
 
         data[date_formated] = get_item_response
 
         with open(json_file, "w", encoding="utf-8") as outfile:
             json.dump(data, outfile, indent=4)
 
+    def _get_flatten_data(self, timestamp: str, data: T.Dict) -> T.Dict:
+        flattened = {}
+
+        flattened["timestamp"] = timestamp
+        flattened["store_id"] = safe_get(data, "store.store_id".split("."), "")
+        flattened["store_name"] = safe_get(data, "store.store_name".split("."), "")
+        flattened["pickup_location:location:longitude"] = safe_get(
+            data, "pickup_location.location.longitude".split("."), ""
+        )
+        flattened["pickup_location:location:latitude"] = safe_get(
+            data, "pickup_location.location.latitude".split("."), ""
+        )
+        flattened["pickup_interval:start"] = safe_get(data, "pickup_interval.start".split("."), "")
+        flattened["pickup_interval:end"] = safe_get(data, "pickup_interval.end".split("."), "")
+        flattened["items_available"] = safe_get(data, "items_available".split("."), "")
+        flattened["sold_out_at"] = safe_get(data, "sold_out_at".split("."), "")
+        flattened["item_type"] = safe_get(data, "item_type".split("."), "")
+        flattened["item_category"] = safe_get(data, "item.item_category".split("."), "")
+        flattened["price_including_taxes:code"] = safe_get(
+            data, "item.price_including_taxes.code".split("."), ""
+        )
+        flattened["price_including_taxes:minor_units"] = safe_get(
+            data, "item.price_including_taxes.minor_units".split("."), ""
+        )
+        flattened["price_including_taxes:decimals"] = safe_get(
+            data, "item.price_including_taxes.decimals".split("."), ""
+        )
+
+        def convert_to_price(data: T.Dict[str, T.Any]) -> str:
+            if not data:
+                return ""
+
+            value_including_taxes_dict = safe_get(data, "item.value_including_taxes".split("."), {})
+
+            if not value_including_taxes_dict:
+                return ""
+
+            code = str(value_including_taxes_dict.get("code", ""))
+            minor_units = int(value_including_taxes_dict["minor_units"])
+            decimals = int(value_including_taxes_dict["decimals"])
+
+            return str(float(minor_units) / (10 * decimals)) + " " + code
+
+        flattened["value_including_taxes"] = convert_to_price(data)
+
+        flattened["average_overall_rating:average_overall_rating"] = safe_get(
+            data, "item.average_overall_rating.average_overall_rating".split("."), ""
+        )
+        flattened["average_overall_rating:rating_count"] = safe_get(
+            data, "item.average_overall_rating.rating_count".split("."), ""
+        )
+        flattened["average_overall_rating:month_count"] = safe_get(
+            data, "item.average_overall_rating.month_count".split("."), ""
+        )
+        flattened["favorite_count"] = safe_get(data, "item.favorite_count".split("."), "")
+
+        return flattened
+
     def write_data_to_csv(
-        self, get_item_response: data_types.GetItemResponse, csv_file: str
+        self, get_item_response: data_types.GetItemResponse, csv_file: str, time_zone: T.Any
     ) -> None:
         file_util.make_sure_path_exists(csv_file)
 
-        if os.path.isfile(csv_file):
-            with open(csv_file, "r", encoding="utf-8") as infile:
-                data = json.load(infile)
-        else:
-            data = {}
+        date_now = datetime.datetime.now()
+        date_localized = time_zone.localize(date_now)
+        date_formated = date_localized.strftime("%Y-%m-%d %H:%M:%S")
 
-        date_formated = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        header = list(self._get_flatten_data(date_formated, {}).keys())
 
-        data[date_formated] = get_item_response
+        csv = csv_logger.CsvLogger(csv_file=csv_file, header=header)
 
-        with open(csv_file, "w", encoding="utf-8") as outfile:
-            json.dump(data, outfile, indent=4)
+        for item in get_item_response["results"]:
+            csv.write(self._get_flatten_data(date_formated, dict(item)))
