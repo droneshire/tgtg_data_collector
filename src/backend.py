@@ -169,7 +169,9 @@ class TgtgCollectorBackend:
             log.print_warn("No results found, not saving anything")
         else:
             tgtg_data_json_file = self._get_tgtg_data_file(search["user"], uuid)
+            tgtg_data_csv_file = self._get_tgtg_csv_file(search["user"], uuid)
             self.tgtg_manager.write_data_to_json(results, tgtg_data_json_file, timezone)
+            self.tgtg_manager.write_data_to_csv(results, tgtg_data_csv_file, timezone)
 
         # TODO(ross): this is pretty inefficient, we potentially update the firebase
         # database for each search rather than just doing it user by user at the end, but
