@@ -202,7 +202,7 @@ class TgtgManager:
 
         date_now = datetime.datetime.now()
         date_localized = time_zone.localize(date_now)
-        date_formated = date_localized.strftime("%Y-%m-%d %H:%M:%S")
+        date_formated = date_localized.strftime("%Y-%m-%d %H:%M:%S %Z")
 
         header = list(self._get_flatten_data(date_formated, {}).keys())
 
