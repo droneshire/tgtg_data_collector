@@ -109,11 +109,18 @@ class TgtgCollectorBackend:
             log.print_warn("No attachments! Not sending email")
             return
 
-        self.firebase_user.delete_uploads(search["user"])
+        try:
+            self.firebase_user.delete_uploads(search["user"])
+        except Exception as exception:  # pylint: disable=broad-except
+            log.print_warn(f"Failed to delete uploads: {exception}")
 
         urls = []
         for attachment in attachments:
-            url = self.firebase_user.get_upload_file_url(search["user"], attachment)
+            try:
+                url = self.firebase_user.get_upload_file_url(search["user"], attachment)
+            except Exception as exception:  # pylint: disable=broad-except
+                log.print_warn(f"Failed to get upload url: {exception}")
+                url = None
             if url:
                 extension = os.path.splitext(attachment)[1]
                 urls.append(f"{extension.upper()}: {short_url.shorten_url(url)}")
