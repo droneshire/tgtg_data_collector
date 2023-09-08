@@ -84,9 +84,9 @@ class TgtgCollectorBackend:
         message += f"Start time: {search['hour_start']}\n"
         message += "Search location: \n"
         message += f"{json.dumps(search['region'], indent=4)}\n\n"
-        message += "Download links:\n"
+        message += "Download links:\n\n"
         for url in urls:
-            message += f"{url}\n"
+            message += f"- {url}\n"
         message += "\n"
         message += "Thanks!\n\n"
         message += "".join(self.FOOD_EMOJIS)
@@ -109,11 +109,14 @@ class TgtgCollectorBackend:
             log.print_warn("No attachments! Not sending email")
             return
 
+        self.firebase_user.delete_uploads(search["user"])
+
         urls = []
         for attachment in attachments:
             url = self.firebase_user.get_upload_file_url(search["user"], attachment)
             if url:
-                urls.append(short_url.shorten_url(url))
+                extension = os.path.splitext(attachment)[1]
+                urls.append(f"{extension.upper()}: {short_url.shorten_url(url)}")
 
         message = self._format_email(search, urls)
 

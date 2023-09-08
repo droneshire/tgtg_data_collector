@@ -136,12 +136,27 @@ class FirebaseUser:
 
         self._maybe_upload_db_cache_to_firestore(user, old_db_user, db_user)
 
-    def get_upload_file_url(self, user: str, file_path: str) -> str:
+    def delete_uploads(self, user: str) -> None:
+        log.print_warn(f"Deleting all uploads for {user}")
+        for blob in self.bucket.list_blobs(prefix=f"{user}/"):
+            blob.delete()
+
+    def get_upload_file_url(self, user: str, file_path: str, verbose: bool = False) -> str:
         file_name = os.path.basename(file_path)
+        mimetype = "text/csv" if file_name.endswith(".csv") else "application/json"
+
         storage_path = f"{user}/{file_name}"
         blob = self.bucket.blob(storage_path)
-        blob.upload_from_filename(file_path)
-        log.print_bright(f"Uploading {file_path} to {storage_path} on firebase")
+        blob.content_type = mimetype
+        blob.upload_from_filename(
+            file_path,
+            content_type=mimetype,
+            predefined_acl="publicRead",
+        )
+
+        if verbose:
+            log.print_bright(f"Uploading {file_path} to {storage_path} on firebase")
+
         download_url = blob.generate_signed_url(
             version="v4",
             expiration=datetime.timedelta(minutes=15),
