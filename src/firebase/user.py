@@ -1,14 +1,16 @@
 import copy
+import datetime
 import enum
 import hashlib
 import json
+import os
 import threading
 import time
 import typing as T
 
 import deepdiff
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, storage
 from google.cloud.firestore_v1.base_document import DocumentSnapshot
 from google.cloud.firestore_v1.collection import CollectionReference
 from google.cloud.firestore_v1.watch import DocumentChange
@@ -28,11 +30,12 @@ class Changes(enum.Enum):
 class FirebaseUser:
     HEALTH_PING_TIME = 60 * 30
 
-    def __init__(self, credentials_file: str, verbose: bool = False) -> None:
+    def __init__(self, credentials_file: str, storage_bucket: str, verbose: bool = False) -> None:
         if not firebase_admin._apps:  # pylint: disable=protected-access
             auth = credentials.Certificate(credentials_file)
-            firebase_admin.initialize_app(auth)
+            firebase_admin.initialize_app(auth, {"storageBucket": storage_bucket})
         self.database = firestore.client()
+        self.bucket = storage.bucket()
         self.verbose = verbose
 
         self.user_ref: CollectionReference = self.database.collection("user")
@@ -132,6 +135,20 @@ class FirebaseUser:
             patch_missing_keys_recursive(dict(firebase_data_types.NULL_USER), dict(db_user))
 
         self._maybe_upload_db_cache_to_firestore(user, old_db_user, db_user)
+
+    def get_upload_file_url(self, user: str, file_path: str) -> str:
+        file_name = os.path.basename(file_path)
+        storage_path = f"{user}/{file_name}"
+        blob = self.bucket.blob(storage_path)
+        blob.upload_from_filename(file_path)
+        log.print_bright(f"Uploading {file_path} to {storage_path} on firebase")
+        download_url = blob.generate_signed_url(
+            version="v4",
+            expiration=datetime.timedelta(minutes=15),
+            method="GET",
+        )
+        log.print_ok_arrow(f"Download URL {download_url}")
+        return str(download_url)
 
     def get_users(self) -> T.Dict[str, firebase_data_types.User]:
         with self.database_cache_lock:

@@ -10,7 +10,7 @@ from firebase.user import FirebaseUser
 from too_good_to_go import data_types as too_good_to_go_data_types
 from too_good_to_go.manager import TgtgManager
 from too_good_to_go.search_interval import is_time_to_search
-from util import email, file_util, fmt_util, log
+from util import email, file_util, fmt_util, log, short_url
 
 
 class TgtgCollectorBackend:
@@ -18,6 +18,7 @@ class TgtgCollectorBackend:
         "prod": 60 * 60 * 24,
         "dev": 60 * 1,
     }
+    FOOD_EMOJIS = ["🍕", "🍔", "🍟", "🍗", "🍖", "🌭", "🍿", "🍛", "🍜", "🍝", "🍤"]
 
     def __init__(
         self,
@@ -75,15 +76,7 @@ class TgtgCollectorBackend:
 
         return attachments
 
-    def _maybe_send_email(self, uuid: str, search: too_good_to_go_data_types.Search) -> None:
-        if self.email is None:
-            return
-
-        if not search.get("email_data", False):
-            return
-
-        food_emojis = ["🍕", "🍔", "🍟", "🍗", "🍖", "🌭", "🍿", "🍛", "🍜", "🍝", "🍤"]
-
+    def _format_email(self, search: too_good_to_go_data_types.Search, urls: T.List[str]) -> str:
         message = "Hello!\n\n"
         message += "See attached results from your Too Good To Go search:\n\n"
         message += f"Search name: {search['search_name']}\n"
@@ -91,10 +84,38 @@ class TgtgCollectorBackend:
         message += f"Start time: {search['hour_start']}\n"
         message += "Search location: \n"
         message += f"{json.dumps(search['region'], indent=4)}\n\n"
+        message += "Download links:\n"
+        for url in urls:
+            message += f"{url}\n"
+        message += "\n"
         message += "Thanks!\n\n"
-        message += "".join(food_emojis)
+        message += "".join(self.FOOD_EMOJIS)
+
+        return message
+
+    def _maybe_send_email(self, uuid: str, search: too_good_to_go_data_types.Search) -> None:
+        if self.email is None:
+            return
+
+        if not search.get("email_data", False):
+            return
 
         log.print_ok(f"Sending email to {search['user']}")
+
+        did_send_email = True
+        attachments = self._get_attachments(search["user"], uuid)
+
+        if not attachments:
+            log.print_warn("No attachments! Not sending email")
+            return
+
+        urls = []
+        for attachment in attachments:
+            url = self.firebase_user.get_upload_file_url(search["user"], attachment)
+            if url:
+                urls.append(short_url.shorten_url(url))
+
+        message = self._format_email(search, urls)
 
         if self.verbose:
             log.print_normal(f"Message: {message}")
@@ -103,25 +124,20 @@ class TgtgCollectorBackend:
             log.print_bright("Dry run, not sending email")
             return
 
-        did_send_email = True
-        attachments = self._get_attachments(search["user"], uuid)
+        did_send_email = email.send_email(
+            [self.email],
+            [search["user"]],
+            f"Too Good To Go Search Results {random.choice(self.FOOD_EMOJIS)}",
+            content=message,
+            verbose=self.verbose,
+        )
 
-        if attachments:
-            did_send_email = email.send_email(
-                [self.email],
-                [search["user"]],
-                f"Too Good To Go Search Results {random.choice(food_emojis)}",
-                attachments=attachments,
-                content=message,
-                verbose=self.verbose,
-            )
-        else:
-            log.print_warn("No attachments! Not sending email")
+        if not did_send_email:
+            return
 
-        if did_send_email:
-            self.firebase_user.update_search_email(
-                user=search["user"], search_name=search["search_name"]
-            )
+        self.firebase_user.update_search_email(
+            user=search["user"], search_name=search["search_name"]
+        )
 
     def _maybe_run_search(self, uuid: str, search: too_good_to_go_data_types.Search) -> None:
         timezone = pytz.timezone(search["time_zone"])

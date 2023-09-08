@@ -36,7 +36,10 @@ def run_loop(args: argparse.Namespace) -> None:
         allow_create=True,
     )
     firebase_credentials_file = os.environ["FIREBASE_CREDENTIALS_FILE"]
-    firebase_user = FirebaseUser(firebase_credentials_file, verbose=args.verbose)
+    firebase_storage_path = os.environ["FIREBASE_STORAGE_PATH"]
+    firebase_user = FirebaseUser(
+        firebase_credentials_file, firebase_storage_path, verbose=args.verbose
+    )
     backend = TgtgCollectorBackend(
         sender_email,
         tgtg_manager=tgtg_manager,
