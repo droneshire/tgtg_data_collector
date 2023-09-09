@@ -23,6 +23,7 @@ SENDER_EMAIL_ADDRESS=<REDACTED>
 SENDER_EMAIL_PASSWORD=<REDACTED>
 
 FIREBASE_CREDENTIALS_FILE="firebase_service_account.json"
+FIREBASE_STORAGE_PATH="too-good-to-go-data-collect.appspot.com"
 
 BOT_PIDFILE="tgtg_worker.pid"
 RESET_PIDFILE="reset_tgtg_worker.pid"
