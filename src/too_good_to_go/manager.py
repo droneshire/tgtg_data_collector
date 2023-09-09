@@ -145,6 +145,24 @@ class TgtgManager:
         with open(json_file, "w", encoding="utf-8") as outfile:
             json.dump(data, outfile, indent=4)
 
+    @staticmethod
+    def convert_to_price(data: T.Dict[str, T.Any], field: str) -> str:
+        if not data:
+            return ""
+
+        value_including_taxes_dict = safe_get(data, field.split("."), {})
+
+        if not value_including_taxes_dict:
+            return ""
+
+        code = str(value_including_taxes_dict.get("code", ""))
+        minor_units = int(value_including_taxes_dict["minor_units"])
+        decimals = int(value_including_taxes_dict["decimals"])
+
+        price = float(minor_units) / (10**decimals)
+        price_string = f"{price:.2f} {code}"
+        return price_string
+
     def _get_flatten_data(self, timestamp: str, data: T.Dict) -> T.Dict:
         flattened = {}
 
@@ -164,23 +182,12 @@ class TgtgManager:
         flattened["item_type"] = safe_get(data, "item_type".split("."), "")
         flattened["item_category"] = safe_get(data, "item.item_category".split("."), "")
 
-        def convert_to_price(data: T.Dict[str, T.Any], field: str) -> str:
-            if not data:
-                return ""
-
-            value_including_taxes_dict = safe_get(data, field.split("."), {})
-
-            if not value_including_taxes_dict:
-                return ""
-
-            code = str(value_including_taxes_dict.get("code", ""))
-            minor_units = int(value_including_taxes_dict["minor_units"])
-            decimals = int(value_including_taxes_dict["decimals"])
-
-            return str(float(minor_units) / (10 * decimals)) + " " + code
-
-        flattened["price_including_taxes"] = convert_to_price(data, "item.price_including_taxes")
-        flattened["value_including_taxes"] = convert_to_price(data, "item.value_including_taxes")
+        flattened["price_including_taxes"] = self.convert_to_price(
+            data, "item.price_including_taxes"
+        )
+        flattened["value_including_taxes"] = self.convert_to_price(
+            data, "item.value_including_taxes"
+        )
 
         flattened["average_overall_rating:average_overall_rating"] = safe_get(
             data, "item.average_overall_rating.average_overall_rating".split("."), ""
@@ -202,7 +209,10 @@ class TgtgManager:
 
         date_now = datetime.datetime.now()
         date_localized = time_zone.localize(date_now)
-        date_formated = date_localized.strftime("%Y-%m-%d %H:%M:%S %Z")
+        local_offset = date_localized.utcoffset()
+        local_time = date_localized - local_offset
+
+        date_formated = local_time.strftime("%Y-%m-%d %H:%M:%S %Z")
 
         header = list(self._get_flatten_data(date_formated, {}).keys())
 

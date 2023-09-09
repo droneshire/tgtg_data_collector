@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 import tempfile
 import typing as T
@@ -8,6 +9,7 @@ import pytz
 
 from firebase.user import FirebaseUser
 from too_good_to_go.data_types import Search
+from too_good_to_go.manager import TgtgManager
 from too_good_to_go.search_interval import (
     INTERVALS,
     SECONDS_PER_HOUR,
@@ -25,6 +27,8 @@ class TgtgTest(unittest.TestCase):
     verbose: bool = True
     time_zone = pytz.timezone("America/Los_Angeles")
     time_zone_other = pytz.timezone("America/New_York")
+    test_data_dir = os.path.join(os.path.dirname(__file__), "test_data")
+    test_data_json_file = "tgtg_search_test.json"
 
     def setUp(self) -> None:
         # pylint: disable=consider-using-with
@@ -34,6 +38,8 @@ class TgtgTest(unittest.TestCase):
 
         with open(self.temp_credentials_file.name, "w", encoding="utf-8") as outfile:
             outfile.write("{}")
+
+        self.test_data_json = os.path.join(self.test_data_dir, self.test_data_json_file)
 
     def tearDown(self) -> None:
         if self.temp_credentials_file and os.path.isfile(self.temp_credentials_file.name):
@@ -260,6 +266,27 @@ class TgtgTest(unittest.TestCase):
                 verbose=self.verbose,
             )
             self.assertEqual(result, test_case[4])
+
+    def test_parsing_costs_from_api_data(self) -> None:
+        with open(self.test_data_json, "r", encoding="utf-8") as infile:
+            json_data = json.load(infile)
+
+        timestamps = list(json_data.keys())
+        results = json_data[timestamps[0]]["results"]
+
+        item_one = results[0]
+        price = TgtgManager.convert_to_price(item_one, "item.value_including_taxes")
+        self.assertEqual(price, "12.00 EUR")
+
+        price = TgtgManager.convert_to_price(item_one, "item.price_including_taxes")
+        self.assertEqual(price, "3.99 EUR")
+
+        item_two = results[1]
+        price = TgtgManager.convert_to_price(item_two, "item.value_including_taxes")
+        self.assertEqual(price, "9.00 EUR")
+
+        price = TgtgManager.convert_to_price(item_two, "item.price_including_taxes")
+        self.assertEqual(price, "3.00 EUR")
 
 
 if __name__ == "__main__":
