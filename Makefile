@@ -37,14 +37,14 @@ test:
 # $(RUN_PY) unittest discover -s test -p *_test.py -v
 # Uncomment and tab over to run individual tests
 # $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_uuid
-# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_finding_interval
-# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_conversion_timezone
-# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_get_intervals_from_start_time
+	$(RUN_PY) unittest test.tgtg_test.TgtgTest.test_finding_interval
+	$(RUN_PY) unittest test.tgtg_test.TgtgTest.test_conversion_timezone
+	$(RUN_PY) unittest test.tgtg_test.TgtgTest.test_get_intervals_from_start_time
 # $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_timezone_changes
 # $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_time_within_divisors_of_24
 # $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_time_all_starts_within_interval
-# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_time_all_starts_outside_interval
-	$(RUN_PY) unittest test.tgtg_test.TgtgTest.test_parsing_costs_from_api_data
+	$(RUN_PY) unittest test.tgtg_test.TgtgTest.test_time_all_starts_outside_interval
+# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_parsing_costs_from_api_data
 
 run_worker_dev:
 	$(RUN_PY) executables.tgtg_worker --mode dev --time-between-loop 15 --verbose
