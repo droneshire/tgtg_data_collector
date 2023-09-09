@@ -1,0 +1,329 @@
+{
+    "2023-09-07 01:08:08": {
+        "results": [
+            {
+                "item": {
+                    "item_id": "320293",
+                    "sales_taxes": [
+                        {
+                            "tax_description": "VAT",
+                            "tax_percentage": 5.5
+                        }
+                    ],
+                    "tax_amount": {
+                        "code": "EUR",
+                        "minor_units": 21,
+                        "decimals": 2
+                    },
+                    "price_excluding_taxes": {
+                        "code": "EUR",
+                        "minor_units": 399,
+                        "decimals": 2
+                    },
+                    "price_including_taxes": {
+                        "code": "EUR",
+                        "minor_units": 399,
+                        "decimals": 2
+                    },
+                    "value_excluding_taxes": {
+                        "code": "EUR",
+                        "minor_units": 1200,
+                        "decimals": 2
+                    },
+                    "value_including_taxes": {
+                        "code": "EUR",
+                        "minor_units": 1200,
+                        "decimals": 2
+                    },
+                    "taxation_policy": "PRICE_INCLUDES_TAXES",
+                    "show_sales_taxes": false,
+                    "item_price": {
+                        "code": "EUR",
+                        "minor_units": 399,
+                        "decimals": 2
+                    },
+                    "item_value": {
+                        "code": "EUR",
+                        "minor_units": 1200,
+                        "decimals": 2
+                    },
+                    "cover_picture": {
+                        "picture_id": "268164",
+                        "current_url": "https://images.tgtg.ninja/standard_images/GROCERIES/NpNvI4ilT4A.jpg",
+                        "is_automatically_created": false
+                    },
+                    "logo_picture": {
+                        "picture_id": "795536",
+                        "current_url": "https://images.tgtg.ninja/item/logo/3dabf7b5-9a8b-465b-9dc3-59fa5a88839f.png",
+                        "is_automatically_created": false
+                    },
+                    "name": "Panier anti-gaspi",
+                    "description": "",
+                    "food_handling_instructions": "",
+                    "can_user_supply_packaging": false,
+                    "packaging_option": "BAG_ALLOWED",
+                    "collection_info": "",
+                    "diet_categories": [],
+                    "item_category": "GROCERIES",
+                    "buffet": false,
+                    "badges": [
+                        {
+                            "badge_type": "SERVICE_RATING_SCORE",
+                            "rating_group": "LIKED",
+                            "percentage": 90,
+                            "user_count": 134,
+                            "month_count": 6
+                        },
+                        {
+                            "badge_type": "OVERALL_RATING_TRUST_SCORE",
+                            "rating_group": "LIKED",
+                            "percentage": 85,
+                            "user_count": 134,
+                            "month_count": 6
+                        }
+                    ],
+                    "positive_rating_reasons": [
+                        "POSITIVE_FEEDBACK_FRIENDLY_STAFF",
+                        "POSITIVE_FEEDBACK_QUICK_COLLECTION",
+                        "POSITIVE_FEEDBACK_DELICIOUS_FOOD",
+                        "POSITIVE_FEEDBACK_GREAT_VALUE",
+                        "POSITIVE_FEEDBACK_GREAT_QUANTITY",
+                        "POSITIVE_FEEDBACK_GREAT_VARIETY"
+                    ],
+                    "average_overall_rating": {
+                        "average_overall_rating": 4.088709677419355,
+                        "rating_count": 124,
+                        "month_count": 6
+                    },
+                    "favorite_count": 0
+                },
+                "store": {
+                    "store_id": "316880",
+                    "store_name": "Carrefour City - Rennes, Churchill",
+                    "branch": "",
+                    "description": "",
+                    "tax_identifier": "FR80810278788",
+                    "website": "",
+                    "store_location": {
+                        "address": {
+                            "country": {
+                                "iso_code": "FR",
+                                "name": "France"
+                            },
+                            "address_line": "2 Avenue Sir Winston Churchill, 35000 Rennes, France",
+                            "city": "",
+                            "postal_code": ""
+                        },
+                        "location": {
+                            "longitude": -1.7076275,
+                            "latitude": 48.1177285
+                        }
+                    },
+                    "logo_picture": {
+                        "picture_id": "795566",
+                        "current_url": "https://images.tgtg.ninja/store/e261f629-f47c-4cda-9709-76528f3e661c.png",
+                        "is_automatically_created": false
+                    },
+                    "store_time_zone": "Europe/Paris",
+                    "hidden": false,
+                    "favorite_count": 0,
+                    "we_care": false,
+                    "distance": 1.4656004013741353,
+                    "cover_picture": {
+                        "picture_id": "268164",
+                        "current_url": "https://images.tgtg.ninja/standard_images/GROCERIES/NpNvI4ilT4A.jpg",
+                        "is_automatically_created": false
+                    },
+                    "is_manufacturer": false
+                },
+                "display_name": "Carrefour City - Rennes, Churchill (Panier anti-gaspi)",
+                "pickup_location": {
+                    "address": {
+                        "country": {
+                            "iso_code": "FR",
+                            "name": "France"
+                        },
+                        "address_line": "2 Avenue Sir Winston Churchill, 35000 Rennes, France",
+                        "city": "",
+                        "postal_code": ""
+                    },
+                    "location": {
+                        "longitude": -1.7076275,
+                        "latitude": 48.1177285
+                    }
+                },
+                "items_available": 0,
+                "distance": 1.4656004013741353,
+                "favorite": false,
+                "in_sales_window": false,
+                "new_item": false,
+                "item_type": "MAGIC_BAG",
+                "matches_filters": true
+            },
+            {
+                "item": {
+                    "item_id": "738992",
+                    "sales_taxes": [
+                        {
+                            "tax_description": "TVA",
+                            "tax_percentage": 5.5
+                        }
+                    ],
+                    "tax_amount": {
+                        "code": "EUR",
+                        "minor_units": 16,
+                        "decimals": 2
+                    },
+                    "price_excluding_taxes": {
+                        "code": "EUR",
+                        "minor_units": 300,
+                        "decimals": 2
+                    },
+                    "price_including_taxes": {
+                        "code": "EUR",
+                        "minor_units": 300,
+                        "decimals": 2
+                    },
+                    "value_excluding_taxes": {
+                        "code": "EUR",
+                        "minor_units": 900,
+                        "decimals": 2
+                    },
+                    "value_including_taxes": {
+                        "code": "EUR",
+                        "minor_units": 900,
+                        "decimals": 2
+                    },
+                    "taxation_policy": "PRICE_INCLUDES_TAXES",
+                    "show_sales_taxes": false,
+                    "item_price": {
+                        "code": "EUR",
+                        "minor_units": 300,
+                        "decimals": 2
+                    },
+                    "item_value": {
+                        "code": "EUR",
+                        "minor_units": 900,
+                        "decimals": 2
+                    },
+                    "cover_picture": {
+                        "picture_id": "738401",
+                        "current_url": "https://images.tgtg.ninja/itembulkimport/cover/66740/ea4baa92-94c8-4bfc-bb1f-5d9108e4a22f.png",
+                        "is_automatically_created": false
+                    },
+                    "logo_picture": {
+                        "picture_id": "874744",
+                        "current_url": "https://images.tgtg.ninja/itembulkimport/logo/93961/ec53e783-e163-4977-9bd4-6186eba760cf.jpg",
+                        "is_automatically_created": false
+                    },
+                    "name": "Caf\u00e9",
+                    "description": "Dans votre panier surprise, vous trouverez un assortiment de produits sucr\u00e9s ou sal\u00e9s : sandwichs, salades, viennoiseries ou desserts etc.",
+                    "can_user_supply_packaging": false,
+                    "packaging_option": "MUST_BRING_BAG",
+                    "collection_info": "Rendez-vous au Flunch Caf\u00e9 pour r\u00e9cup\u00e9rer votre panier surprise !",
+                    "diet_categories": [],
+                    "item_category": "MEAL",
+                    "buffet": false,
+                    "badges": [
+                        {
+                            "badge_type": "OVERALL_RATING_TRUST_SCORE",
+                            "rating_group": "LIKED",
+                            "percentage": 91,
+                            "user_count": 129,
+                            "month_count": 6
+                        },
+                        {
+                            "badge_type": "SERVICE_RATING_SCORE",
+                            "rating_group": "LIKED",
+                            "percentage": 95,
+                            "user_count": 129,
+                            "month_count": 6
+                        }
+                    ],
+                    "positive_rating_reasons": [
+                        "POSITIVE_FEEDBACK_FRIENDLY_STAFF",
+                        "POSITIVE_FEEDBACK_GREAT_QUANTITY",
+                        "POSITIVE_FEEDBACK_QUICK_COLLECTION",
+                        "POSITIVE_FEEDBACK_GREAT_VALUE",
+                        "POSITIVE_FEEDBACK_DELICIOUS_FOOD",
+                        "POSITIVE_FEEDBACK_GREAT_VARIETY"
+                    ],
+                    "average_overall_rating": {
+                        "average_overall_rating": 4.339130434782609,
+                        "rating_count": 115,
+                        "month_count": 6
+                    },
+                    "favorite_count": 0
+                },
+                "store": {
+                    "store_id": "35327",
+                    "store_name": "Flunch - Rennes, Cleunay",
+                    "branch": "",
+                    "description": "Flunch s'engage contre le gaspillage alimentaire avec Too Good To Go !",
+                    "tax_identifier": "FR39320772510",
+                    "website": "http://www.flunch.fr/",
+                    "store_location": {
+                        "address": {
+                            "country": {
+                                "iso_code": "FR",
+                                "name": "France"
+                            },
+                            "address_line": "Centre Commercial Leclerc, Rue Jules Vall\u00e8s, 35000 Rennes, France",
+                            "city": "",
+                            "postal_code": ""
+                        },
+                        "location": {
+                            "longitude": -1.7147015,
+                            "latitude": 48.105396
+                        }
+                    },
+                    "logo_picture": {
+                        "picture_id": "1824",
+                        "current_url": "https://images.tgtg.ninja/store/1537534817_ZhL6xCcb2Q3UgtacoHNclDnqa9WserI9_scale.jpg",
+                        "is_automatically_created": false
+                    },
+                    "store_time_zone": "Europe/Paris",
+                    "hidden": false,
+                    "favorite_count": 0,
+                    "we_care": false,
+                    "distance": 2.3724452424962035,
+                    "cover_picture": {
+                        "picture_id": "738401",
+                        "current_url": "https://images.tgtg.ninja/itembulkimport/cover/66740/ea4baa92-94c8-4bfc-bb1f-5d9108e4a22f.png",
+                        "is_automatically_created": false
+                    },
+                    "is_manufacturer": false
+                },
+                "display_name": "Flunch - Rennes, Cleunay (Caf\u00e9)",
+                "pickup_interval": {
+                    "start": "2023-09-07T17:30:00Z",
+                    "end": "2023-09-07T18:00:00Z"
+                },
+                "pickup_location": {
+                    "address": {
+                        "country": {
+                            "iso_code": "FR",
+                            "name": "France"
+                        },
+                        "address_line": "Centre Commercial Leclerc, Rue Jules Vall\u00e8s, 35000 Rennes, France",
+                        "city": "",
+                        "postal_code": ""
+                    },
+                    "location": {
+                        "longitude": -1.7147015,
+                        "latitude": 48.105396
+                    }
+                },
+                "purchase_end": "2023-09-07T18:00:00Z",
+                "items_available": 0,
+                "sold_out_at": "2023-09-06T19:39:08Z",
+                "distance": 2.3724452424962035,
+                "favorite": false,
+                "in_sales_window": true,
+                "new_item": false,
+                "item_type": "MAGIC_BAG",
+                "matches_filters": true
+            }
+        ]
+    }
+}

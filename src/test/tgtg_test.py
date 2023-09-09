@@ -28,7 +28,7 @@ class TgtgTest(unittest.TestCase):
     time_zone = pytz.timezone("America/Los_Angeles")
     time_zone_other = pytz.timezone("America/New_York")
     test_data_dir = os.path.join(os.path.dirname(__file__), "test_data")
-    test_data_json_file = "tgtg_search_test.json"
+    test_data_json_file = "tgtg_search_test_json"
 
     def setUp(self) -> None:
         # pylint: disable=consider-using-with
