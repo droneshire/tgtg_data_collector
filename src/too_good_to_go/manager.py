@@ -110,14 +110,24 @@ class TgtgManager:
 
         for page in range(1, self.MAX_PAGES_PER_REGION + 1):
             log.print_normal(f"Searching page {page} of {self.MAX_PAGES_PER_REGION}")
-            new_data = self.client.get_items(
-                favorites_only=False,
-                latitude=region["latitude"],
-                longitude=region["longitude"],
-                radius=region["radius"],
-                page_size=self.MAX_ITEMS_PER_PAGE,
-                page=page,
-            )
+            new_data = None
+            try:
+                new_data = self.client.get_items(
+                    favorites_only=False,
+                    latitude=region["latitude"],
+                    longitude=region["longitude"],
+                    radius=region["radius"],
+                    page_size=self.MAX_ITEMS_PER_PAGE,
+                    page=page,
+                )
+            except tgtg_exceptions.TgtgAPIError as exception:
+                log.print_fail(f"Failed to get items for page {page}!")
+                log.print_fail(f"{exception}")
+                import pdb
+
+                pdb.set_trace()
+                input("Press Enter to continue...")
+
             if not new_data or not isinstance(new_data, list):
                 break
 
