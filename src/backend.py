@@ -19,6 +19,7 @@ class TgtgCollectorBackend:
         "dev": 60 * 1,
     }
     FOOD_EMOJIS = ["🍕", "🍔", "🍟", "🍗", "🍖", "🌭", "🍿", "🍛", "🍜", "🍝", "🍤"]
+    TIME_BETWEEN_SEARCHES = 30
 
     def __init__(
         self,
@@ -37,6 +38,7 @@ class TgtgCollectorBackend:
         self.mode = mode
         self.verbose = verbose
         self.dry_run = dry_run
+        self.time_between_searches = self.TIME_BETWEEN_SEARCHES
 
         self.last_query_firebase_time: T.Optional[float] = None
 
@@ -48,6 +50,7 @@ class TgtgCollectorBackend:
         for search_hash, search in searches.items():
             self._maybe_run_search(search_hash, search)
             self._maybe_send_email(search_hash, search)
+            time.sleep(self.time_between_searches)
 
     def _get_tgtg_data_file(self, user: str, uuid: str) -> str:
         user_dir = os.path.join(self.tgtg_data_dir, user)

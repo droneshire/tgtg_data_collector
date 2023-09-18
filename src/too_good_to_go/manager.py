@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+import random
 import time
 import typing as T
 
@@ -121,7 +122,7 @@ class TgtgManager:
                 break
 
             data["results"].extend(new_data)
-            time.sleep(0.5)
+            time.sleep(random.uniform(2, 20))
 
         return T.cast(data_types.GetItemResponse, data)
 
