@@ -33,6 +33,8 @@ class TgtgManager:
 
         self.client = TgtgClient(**self.credentials)
 
+        self.client.login()
+
         log.print_ok_blue_arrow(f"Logged in as {self.email}")
 
     def save_credentials(self, credentials: T.Dict[str, T.Any]) -> None:
@@ -132,7 +134,7 @@ class TgtgManager:
                 break
 
             data["results"].extend(new_data)
-            time.sleep(random.uniform(2, 20))
+            time.sleep(random.uniform(30, 90))
 
         return T.cast(data_types.GetItemResponse, data)
 
