@@ -33,6 +33,9 @@ class TgtgManager:
 
         self.client = TgtgClient(**self.credentials)
 
+        if self.client is None:
+            return
+
         self.client.login()
 
         log.print_ok_blue_arrow(f"Logged in as {self.email}")
@@ -125,9 +128,6 @@ class TgtgManager:
             except tgtg_exceptions.TgtgAPIError as exception:
                 log.print_fail(f"Failed to get items for page {page}!")
                 log.print_fail(f"{exception}")
-                import pdb
-
-                pdb.set_trace()
                 input("Press Enter to continue...")
 
             if not new_data or not isinstance(new_data, list):
