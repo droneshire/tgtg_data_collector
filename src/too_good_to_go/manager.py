@@ -151,7 +151,11 @@ class TgtgManager:
 
         if os.path.isfile(json_file):
             with open(json_file, "r", encoding="utf-8") as infile:
-                data = json.load(infile)
+                try:
+                    data = json.load(infile)
+                except json.JSONDecodeError:
+                    # Handle the case where the file is empty or not valid JSON
+                    data = {}
         else:
             data = {}
 
