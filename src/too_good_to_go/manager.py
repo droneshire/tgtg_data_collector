@@ -15,7 +15,7 @@ from util.dict_util import safe_get
 
 class TgtgManager:
     MAX_PAGES_PER_REGION = 20
-    MAX_ITEMS_PER_PAGE = 300
+    MAX_ITEMS_PER_PAGE = 500
 
     def __init__(self, email: str, credentials_file: str, allow_create: bool = False) -> None:
         self.credentials_file = credentials_file
@@ -118,7 +118,7 @@ class TgtgManager:
         log.print_bold("Searching region...")
 
         for page in range(1, self.MAX_PAGES_PER_REGION + 1):
-            log.print_normal(f"Searching page {page} of {self.MAX_PAGES_PER_REGION}")
+            log.print_normal(f"Searching page {page} out of max {self.MAX_PAGES_PER_REGION}")
             new_data = None
             try:
                 new_data = self.client.get_items(
