@@ -15,7 +15,7 @@ from util.dict_util import safe_get
 
 class TgtgManager:
     MAX_PAGES_PER_REGION = 20
-    MAX_ITEMS_PER_PAGE = 100
+    MAX_ITEMS_PER_PAGE = 300
 
     def __init__(self, email: str, credentials_file: str, allow_create: bool = False) -> None:
         self.credentials_file = credentials_file
@@ -138,7 +138,7 @@ class TgtgManager:
                 break
 
             data["results"].extend(new_data)
-            time.sleep(random.uniform(30, 90))
+            time.sleep(random.uniform(5, 20))
 
         return T.cast(data_types.GetItemResponse, data)
 
