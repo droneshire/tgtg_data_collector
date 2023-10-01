@@ -40,5 +40,5 @@ class TgtgCloudscraperClient(TgtgClient):
             cookie,
         )
 
-        self.session = cloudscraper.session(debug=True)
+        self.session = cloudscraper.session()
         self.session.headers = super()._headers
