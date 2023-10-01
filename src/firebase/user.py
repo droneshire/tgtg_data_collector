@@ -286,6 +286,9 @@ class FirebaseUser:
             user, search_name, ["lastSearchTime", "numResults"], [last_search_time, new_count]
         )
 
+    def reset_search_count(self, user: str, search_name: str) -> None:
+        self._update_search_fields(user, search_name, ["numResults"], [0])
+
     def update_search_email(self, user: str, search_name: str) -> None:
         self._update_search_fields(user, search_name, ["sendEmail"], [False])
 
@@ -304,6 +307,8 @@ class FirebaseUser:
     def _update_search_fields(
         self, user: str, search_name: str, fields: T.List[str], values: T.List[T.Any]
     ) -> None:
+        assert len(fields) == len(values), "Fields and values must be the same length"
+
         with self.database_cache_lock:
             if user not in self.database_cache:
                 log.print_warn(f"User {user} not in database cache")

@@ -152,6 +152,11 @@ class TgtgCollectorBackend:
             user=search["user"], search_name=search["search_name"]
         )
 
+        self.firebase_user.reset_search_count(search["user"], search["search_name"])
+
+        for attachment in attachments:
+            os.remove(attachment)
+
     def _maybe_run_search(self, uuid: str, search: too_good_to_go_data_types.Search) -> None:
         timezone = pytz.timezone(search["time_zone"])
 
