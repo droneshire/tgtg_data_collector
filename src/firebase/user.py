@@ -129,7 +129,7 @@ class FirebaseUser:
                 self._delete_user(doc_id)
 
         for search_hash, search_item in self.get_searches(verbose=False).items():
-            if search_item.get("sendEmail", False) and self._send_email_callback is not None:
+            if search_item.get("email_data", False) and self._send_email_callback is not None:
                 self._send_email_callback(search_hash, search_item)
 
         self.callback_done.set()

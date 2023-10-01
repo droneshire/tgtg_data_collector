@@ -100,7 +100,6 @@ class TgtgCollectorBackend:
         return message
 
     def _maybe_send_email(self, uuid: str, search: too_good_to_go_data_types.Search) -> None:
-        print("here")
         if self.email is None:
             return
 
