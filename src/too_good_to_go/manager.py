@@ -6,9 +6,9 @@ import time
 import typing as T
 
 import tgtg.exceptions as tgtg_exceptions
-from tgtg import TgtgClient
 
 from too_good_to_go import data_types
+from too_good_to_go.tgtg_cloudscraper_client import TgtgCloudscraperClient as TgtgClient
 from util import csv_logger, file_util, log
 from util.dict_util import safe_get
 
@@ -22,7 +22,7 @@ class TgtgManager:
         self.email = email
         self.allow_create = allow_create
 
-        self.client = None
+        self.client: T.Optional[TgtgClient] = None
         self.credentials: T.Dict[str, T.Any] = {}
 
     def init(self) -> None:
@@ -112,6 +112,8 @@ class TgtgManager:
 
         # attempt to read and concatenate all pages
         data = data_types.GetItemResponse({"results": []})
+
+        log.print_bold("Searching region...")
 
         for page in range(1, self.MAX_PAGES_PER_REGION + 1):
             log.print_normal(f"Searching page {page} of {self.MAX_PAGES_PER_REGION}")
