@@ -249,6 +249,7 @@ class TgtgCollectorBackend:
         self._check_to_firebase()
 
     def run(self) -> None:
+        self.tgtg_manager.run()
         self._check_from_firebase()
         self._check_and_run_search_and_email()
         self._check_to_firebase()

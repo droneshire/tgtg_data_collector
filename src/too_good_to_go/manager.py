@@ -33,12 +33,14 @@ class TgtgManager:
 
         self.client = TgtgClient(**self.credentials)
 
-        if self.client is None:
-            return
+        assert self.client is not None, "Client not initialized!"
 
-        self.client.login()
+        self._refresh_token()
 
         log.print_ok_blue_arrow(f"Logged in as {self.email}")
+
+    def run(self) -> None:
+        self._refresh_token()
 
     def save_credentials(self, credentials: T.Dict[str, T.Any]) -> None:
         file_util.make_sure_path_exists(os.path.dirname(self.credentials_file))
@@ -177,6 +179,15 @@ class TgtgManager:
         price = float(minor_units) / (10**decimals)
         price_string = f"{price:.2f} {code}"
         return price_string
+
+    def _refresh_token(self) -> None:
+        # call the client login method to refresh the token if needed.
+        # the login function will automatically refresh the token based on internal
+        # refresh token logic
+        if self.client is None:
+            return
+
+        self.client.login()
 
     def _get_flatten_data(self, timestamp: str, data: T.Dict) -> T.Dict:
         flattened = {}
