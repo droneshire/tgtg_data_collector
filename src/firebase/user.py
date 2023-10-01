@@ -131,7 +131,7 @@ class FirebaseUser:
         for search_hash, search_item in self.get_searches(verbose=False).items():
             if search_item.get("sendEmail", False) and self._send_email_callback is not None:
                 self._send_email_callback(search_hash, search_item)
-        print("done")
+
         self.callback_done.set()
 
     def _handle_firebase_update(self, user: str, db_user: firebase_data_types.User) -> None:
@@ -378,7 +378,8 @@ class FirebaseUser:
 
     def get_searches(self, verbose: bool = True) -> T.Dict[str, too_good_to_go_data_types.Search]:
         searches = {}
-        log.print_bold("Getting searches from database cache")
+        if verbose:
+            log.print_bold("Getting searches from database cache")
         with self.database_cache_lock:
             for user, info in self.database_cache.items():
                 search_items = safe_get(dict(info), "searches.items".split("."), {})
