@@ -159,8 +159,8 @@ class FirebaseUser:
     def send_email_callback(self, callback: SendEmailCallbackType) -> None:
         self._send_email_callback = callback
 
-    def delete_search_uploads(self, user: str, file_path: str) -> None:
-        storage_path = self._get_base_blob_storage_path(user, file_path)
+    def delete_search_uploads(self, user: str, uuid: str) -> None:
+        storage_path = self._get_base_blob_storage_path(user, uuid)
         for blob in self.bucket.list_blobs(prefix=storage_path):
             log.print_warn(f"Deleting upload {blob.name} for {user}")
             blob.delete()
@@ -170,14 +170,13 @@ class FirebaseUser:
         for blob in self.bucket.list_blobs(prefix=f"{user}/"):
             blob.delete()
 
-    def _get_base_blob_storage_path(self, user: str, file_path: str) -> str:
-        file_name = os.path.basename(file_path)
-        uuid = os.path.splitext(file_name)[0]
+    def _get_base_blob_storage_path(self, user: str, uuid: str) -> str:
         return f"{user}/{uuid}"
 
     def _get_blob_storage_path(self, user: str, file_path: str, num_results: int) -> str:
-        blob_base_path = self._get_base_blob_storage_path(user, file_path)
-        extension = os.path.splitext(file_path)[1]
+        file_name = os.path.basename(file_path)
+        uuid, extension = os.path.splitext(file_name)
+        blob_base_path = self._get_base_blob_storage_path(user, uuid)
         return f"{blob_base_path}/{num_results}{extension}"
 
     def get_upload_file_url(

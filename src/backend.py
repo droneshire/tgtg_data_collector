@@ -164,7 +164,7 @@ class TgtgCollectorBackend:
 
         for attachment in attachments:
             try:
-                self.firebase_user.delete_search_uploads(search["user"], attachment)
+                self.firebase_user.delete_search_uploads(search["user"], uuid)
             except Exception as exception:  # pylint: disable=broad-except
                 log.print_warn(f"Failed to delete uploads: {exception}")
 
