@@ -1,6 +1,6 @@
 # Too Good To Go Data Collector
 
-[![Python application](https://github.com/droneshire/property_guru_upwork/actions/workflows/python-app.yml/badge.svg)](https://github.com/droneshire/property_guru_upwork/actions/workflows/python-app.yml)
+[![Python application](https://github.com/droneshire/tgtg_data_collector/actions/workflows/python-app.yml/badge.svg)](https://github.com/droneshire/tgtg_data_collector/actions/workflows/python-app.yml)
 
 Python backend to collect and analyze periodic data collected from Too Good To Go restaurant food waste site.
 
