@@ -15,7 +15,7 @@ from util.dict_util import safe_get
 
 class TgtgManager:
     MAX_PAGES_PER_REGION = 20
-    MAX_ITEMS_PER_PAGE = 500
+    MAX_ITEMS_PER_PAGE = 400
 
     def __init__(self, email: str, credentials_file: str, allow_create: bool = False) -> None:
         self.credentials_file = credentials_file
@@ -24,6 +24,8 @@ class TgtgManager:
 
         self.client: T.Optional[TgtgClient] = None
         self.credentials: T.Dict[str, T.Any] = {}
+
+        assert self.MAX_ITEMS_PER_PAGE <= 400, "MAX_ITEMS_PER_PAGE must be <= 400"
 
     def init(self) -> None:
         self.credentials = self.load_credentials()
