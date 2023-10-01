@@ -40,7 +40,9 @@ class Region(T.TypedDict):
 class Search(T.TypedDict):
     region: Region
     sendEmail: bool
+    eraseData: bool
     lastSearchTime: float
+    lastDownloadTime: float
     numResults: int
 
 

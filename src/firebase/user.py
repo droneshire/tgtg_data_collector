@@ -20,6 +20,8 @@ from too_good_to_go import data_types as too_good_to_go_data_types
 from util import log
 from util.dict_util import check_dict_keys_recursive, patch_missing_keys_recursive, safe_get
 
+SendEmailCallbackType = T.Callable[[str, too_good_to_go_data_types.Search], None]
+
 
 class Changes(enum.Enum):
     ADDED = 1
@@ -29,8 +31,15 @@ class Changes(enum.Enum):
 
 class FirebaseUser:
     HEALTH_PING_TIME = 60 * 30
+    EXP_TIME_MINUTES = 60 * 24 * 7
 
-    def __init__(self, credentials_file: str, storage_bucket: str, verbose: bool = False) -> None:
+    def __init__(
+        self,
+        credentials_file: str,
+        storage_bucket: str,
+        send_email_callback: T.Optional[SendEmailCallbackType] = None,
+        verbose: bool = False,
+    ) -> None:
         if not firebase_admin._apps:  # pylint: disable=protected-access
             auth = credentials.Certificate(credentials_file)
             firebase_admin.initialize_app(auth, {"storageBucket": storage_bucket})
@@ -46,9 +55,11 @@ class FirebaseUser:
         self.database_cache: T.Dict[str, firebase_data_types.User] = {}
 
         self.callback_done: threading.Event = threading.Event()
-        self.database_cache_lock: threading.Lock = threading.Lock()
+        self.database_cache_lock: threading.RLock = threading.RLock()
 
         self.last_health_ping: T.Optional[float] = None
+
+        self._send_email_callback: T.Optional[SendEmailCallbackType] = send_email_callback
 
     def _delete_user(self, name: str) -> None:
         with self.database_cache_lock:
@@ -100,21 +111,24 @@ class FirebaseUser:
         for user in users:
             if user not in self.database_cache:
                 self._delete_user(user)
+            for search_hash, search_item in self.get_searches(verbose=False).items():
+                if search_item.get("sendEmail", False) and self._send_email_callback is not None:
+                    self._send_email_callback(search_hash, search_item)
 
         for change in changed_docs:
             doc_id = change.document.id
-            safe_get(
+            email = safe_get(
                 dict(self.database_cache[doc_id]),
                 "preferences.notifications.email.email".split("."),
                 "",
             )
 
             if change.type.name == Changes.ADDED.name:
-                log.print_ok_blue(f"Added document: {doc_id}")
+                log.print_ok_blue(f"Added document: {doc_id} for {email}")
             elif change.type.name == Changes.MODIFIED.name:
-                log.print_ok_blue(f"Modified document: {doc_id}")
+                log.print_ok_blue(f"Modified document: {doc_id} for {email}")
             elif change.type.name == Changes.REMOVED.name:
-                log.print_ok_blue(f"Removed document: {doc_id}")
+                log.print_ok_blue(f"Removed document: {doc_id} for {email}")
                 self._delete_user(doc_id)
 
         self.callback_done.set()
@@ -136,16 +150,42 @@ class FirebaseUser:
 
         self._maybe_upload_db_cache_to_firestore(user, old_db_user, db_user)
 
-    def delete_uploads(self, user: str) -> None:
+    @property
+    def send_email_callback(self) -> SendEmailCallbackType:
+        assert self._send_email_callback is not None, "Send email callback is None"
+        return self._send_email_callback
+
+    @send_email_callback.setter
+    def send_email_callback(self, callback: SendEmailCallbackType) -> None:
+        self._send_email_callback = callback
+
+    def delete_search_uploads(self, user: str, file_path: str) -> None:
+        storage_path = self._get_base_blob_storage_path(user, file_path)
+        for blob in self.bucket.list_blobs(prefix=storage_path):
+            log.print_warn(f"Deleting upload {blob.name} for {user}")
+            blob.delete()
+
+    def delete_all_uploads(self, user: str) -> None:
         log.print_warn(f"Deleting all uploads for {user}")
         for blob in self.bucket.list_blobs(prefix=f"{user}/"):
             blob.delete()
 
-    def get_upload_file_url(self, user: str, file_path: str, verbose: bool = False) -> str:
+    def _get_base_blob_storage_path(self, user: str, file_path: str) -> str:
         file_name = os.path.basename(file_path)
-        mimetype = "text/csv" if file_name.endswith(".csv") else "application/json"
+        uuid = os.path.splitext(file_name)[0]
+        return f"{user}/{uuid}"
 
-        storage_path = f"{user}/{file_name}"
+    def _get_blob_storage_path(self, user: str, file_path: str, num_results: int) -> str:
+        blob_base_path = self._get_base_blob_storage_path(user, file_path)
+        extension = os.path.splitext(file_path)[1]
+        return f"{blob_base_path}/{num_results}{extension}"
+
+    def get_upload_file_url(
+        self, user: str, file_path: str, num_results: int, verbose: bool = False
+    ) -> str:
+        mimetype = "text/csv" if file_path.endswith(".csv") else "application/json"
+
+        storage_path = self._get_blob_storage_path(user, file_path, num_results)
         blob = self.bucket.blob(storage_path)
         blob.content_type = mimetype
         blob.upload_from_filename(
@@ -159,7 +199,7 @@ class FirebaseUser:
 
         download_url = blob.generate_signed_url(
             version="v4",
-            expiration=datetime.timedelta(minutes=15),
+            expiration=datetime.timedelta(minutes=self.EXP_TIME_MINUTES),
             method="GET",
         )
         log.print_ok_arrow(f"Download URL {download_url}")
@@ -290,7 +330,9 @@ class FirebaseUser:
         self._update_search_fields(user, search_name, ["numResults"], [0])
 
     def update_search_email(self, user: str, search_name: str) -> None:
-        self._update_search_fields(user, search_name, ["sendEmail"], [False])
+        self._update_search_fields(
+            user, search_name, ["sendEmail", "lastDownloadTime"], [False, time.time()]
+        )
 
     def _get_search_item(self, search_name: str) -> T.Optional[firebase_data_types.Search]:
         with self.database_cache_lock:
@@ -334,7 +376,7 @@ class FirebaseUser:
 
         self._maybe_upload_db_cache_to_firestore(user, old_db_user, db_user)
 
-    def get_searches(self) -> T.Dict[str, too_good_to_go_data_types.Search]:
+    def get_searches(self, verbose: bool = True) -> T.Dict[str, too_good_to_go_data_types.Search]:
         searches = {}
         log.print_bold("Getting searches from database cache")
         with self.database_cache_lock:
@@ -357,11 +399,10 @@ class FirebaseUser:
                     region = item.get("region", {})
                     if not region:
                         continue
-                    log.print_ok_blue_arrow(
-                        f"Adding search: {item_name}, for {user}: {json.dumps(region)}"
-                    )
-                    last_update_time = item.get("lastSearchTime", 0)
-
+                    if verbose:
+                        log.print_ok_blue_arrow(
+                            f"Adding search: {item_name}, for {user}: {json.dumps(region)}"
+                        )
                     search_region = too_good_to_go_data_types.Region(
                         latitude=region.get("latitude", 0.0),
                         longitude=region.get("longitude", 0.0),
@@ -375,8 +416,11 @@ class FirebaseUser:
                         hour_start=hour_start,
                         hour_interval=hour_interval,
                         time_zone=time_zone,
-                        last_search_time=last_update_time,
+                        last_search_time=item.get("lastSearchTime", 0),
+                        last_download_time=item.get("lastDownloadTime", 0),
                         email_data=item.get("sendEmail", False),
+                        erase_data=item.get("eraseData", False),
+                        num_results=item.get("numResults", 0),
                     )
 
                     search_hash = self.get_uuid(search, self.verbose)

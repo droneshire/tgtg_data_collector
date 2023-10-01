@@ -15,7 +15,10 @@ class Search(TypedDict):
     hour_interval: int
     time_zone: str
     last_search_time: float
+    last_download_time: float
     email_data: bool
+    erase_data: bool
+    num_results: int
 
 
 class Price(TypedDict):

@@ -21,6 +21,7 @@ class TgtgCollectorBackend:
     FOOD_EMOJIS = ["🍕", "🍔", "🍟", "🍗", "🍖", "🌭", "🍿", "🍛", "🍜", "🍝", "🍤"]
     TIME_BETWEEN_SEARCHES = 30
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         email_obj: email.Email,
@@ -34,6 +35,7 @@ class TgtgCollectorBackend:
         self.email = email_obj
         self.tgtg_manager = tgtg_manager
         self.firebase_user = firebase_user
+        self.firebase_user.send_email_callback = self._maybe_send_email
         self.tgtg_data_dir = tgtg_data_dir
         self.mode = mode
         self.verbose = verbose
@@ -50,6 +52,7 @@ class TgtgCollectorBackend:
         for search_hash, search in searches.items():
             self._maybe_run_search(search_hash, search)
             self._maybe_send_email(search_hash, search)
+            self._maybe_delete_search_files(search_hash, search)
             time.sleep(self.time_between_searches)
 
     def _get_tgtg_data_file(self, user: str, uuid: str) -> str:
@@ -112,15 +115,12 @@ class TgtgCollectorBackend:
             log.print_warn("No attachments! Not sending email")
             return
 
-        try:
-            self.firebase_user.delete_uploads(search["user"])
-        except Exception as exception:  # pylint: disable=broad-except
-            log.print_warn(f"Failed to delete uploads: {exception}")
-
         urls = []
         for attachment in attachments:
             try:
-                url = self.firebase_user.get_upload_file_url(search["user"], attachment)
+                url = self.firebase_user.get_upload_file_url(
+                    search["user"], attachment, search["num_results"]
+                )
             except Exception as exception:  # pylint: disable=broad-except
                 log.print_warn(f"Failed to get upload url: {exception}")
                 url = None
@@ -152,9 +152,24 @@ class TgtgCollectorBackend:
             user=search["user"], search_name=search["search_name"]
         )
 
+    def _maybe_delete_search_files(
+        self, uuid: str, search: too_good_to_go_data_types.Search
+    ) -> None:
+        if not search.get("erase_data", False):
+            return
+
         self.firebase_user.reset_search_count(search["user"], search["search_name"])
 
+        attachments = self._get_attachments(search["user"], uuid)
+
         for attachment in attachments:
+            try:
+                self.firebase_user.delete_search_uploads(search["user"], attachment)
+            except Exception as exception:  # pylint: disable=broad-except
+                log.print_warn(f"Failed to delete uploads: {exception}")
+
+            # NOTE: removing the file clears any internal cache, so we don't need to
+            # do anything else to internal state
             os.remove(attachment)
 
     def _maybe_run_search(self, uuid: str, search: too_good_to_go_data_types.Search) -> None:

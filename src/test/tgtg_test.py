@@ -59,7 +59,10 @@ class TgtgTest(unittest.TestCase):
                 "hour_interval": 5,
                 "time_zone": "America/Los_Angeles",
                 "last_search_time": 0,
+                "last_download_time": 0,
                 "email_data": False,
+                "erase_data": False,
+                "num_results": 0,
             }
         )
 
