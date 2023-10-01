@@ -10,6 +10,7 @@ cfgv==3.4.0
 charset-normalizer==3.2.0
 cleo==2.0.1
 click==8.1.7
+cloudscraper==1.2.71
 crashtest==0.4.1
 cryptography==41.0.3
 cssselect==1.2.0
@@ -95,5 +96,5 @@ urllib3==1.26.16
 virtualenv==20.24.4
 wrapt==1.15.0
 yagmail==0.15.293
-yaspin==2.5.0
+yaspin==3.0.0
 zipp==3.16.2
