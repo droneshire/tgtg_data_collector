@@ -45,6 +45,6 @@ def parse_args() -> argparse.Namespace:
         "--time-between-loop",
         type=int,
         help="Time between each loop in seconds",
-        default=60 * 60 * 30,
+        default=60 * 10,
     )
     return parser.parse_args()
