@@ -131,7 +131,7 @@ class FirebaseUser:
         for search_hash, search_item in self.get_searches(verbose=False).items():
             if search_item.get("sendEmail", False) and self._send_email_callback is not None:
                 self._send_email_callback(search_hash, search_item)
-
+        print("done")
         self.callback_done.set()
 
     def _handle_firebase_update(self, user: str, db_user: firebase_data_types.User) -> None:
