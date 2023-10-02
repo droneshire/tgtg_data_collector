@@ -326,8 +326,8 @@ class FirebaseUser:
             user, search_name, ["lastSearchTime", "numResults"], [last_search_time, new_count]
         )
 
-    def reset_search_count(self, user: str, search_name: str) -> None:
-        self._update_search_fields(user, search_name, ["numResults"], [0])
+    def update_after_data_erase(self, user: str, search_name: str) -> None:
+        self._update_search_fields(user, search_name, ["numResults", "eraseData"], [0, False])
 
     def update_search_email(self, user: str, search_name: str) -> None:
         self._update_search_fields(

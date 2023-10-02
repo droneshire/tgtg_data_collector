@@ -158,8 +158,6 @@ class TgtgCollectorBackend:
         if not search.get("erase_data", False):
             return
 
-        self.firebase_user.reset_search_count(search["user"], search["search_name"])
-
         attachments = self._get_attachments(search["user"], uuid)
 
         for attachment in attachments:
@@ -171,6 +169,8 @@ class TgtgCollectorBackend:
             # NOTE: removing the file clears any internal cache, so we don't need to
             # do anything else to internal state
             os.remove(attachment)
+
+        self.firebase_user.update_after_data_erase(search["user"], search["search_name"])
 
     def _maybe_run_search(self, uuid: str, search: too_good_to_go_data_types.Search) -> None:
         timezone = pytz.timezone(search["time_zone"])
