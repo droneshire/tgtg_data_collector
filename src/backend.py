@@ -160,6 +160,8 @@ class TgtgCollectorBackend:
 
         attachments = self._get_attachments(search["user"], uuid)
 
+        log.print_bold(f"Deleting {len(attachments)} files")
+
         for attachment in attachments:
             try:
                 self.firebase_user.delete_search_uploads(search["user"], uuid)
