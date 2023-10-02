@@ -11,6 +11,7 @@ from too_good_to_go import data_types as too_good_to_go_data_types
 from too_good_to_go.manager import TgtgManager
 from too_good_to_go.search_interval import is_time_to_search
 from util import email, file_util, fmt_util, log, short_url, wait
+from util.fmt_util import get_pretty_seconds
 
 
 class TgtgCollectorBackend:
@@ -93,7 +94,9 @@ class TgtgCollectorBackend:
         message += f"Start time: {search['hour_start']}\n"
         message += "Search location: \n"
         message += f"{json.dumps(search['region'], indent=4)}\n\n"
-        message += "Download links:\n\n"
+        expire_time_seconds = int(self.firebase_user.EXP_TIME_MINUTES * 60.0)
+        expire_time_pretty = get_pretty_seconds(expire_time_seconds, use_days=True)
+        message += f"Download links (which expire in {expire_time_pretty}):\n\n"
         for url in urls:
             message += f"- {url}\n"
         message += "\n"
