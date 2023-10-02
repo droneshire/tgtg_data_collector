@@ -19,7 +19,7 @@ class TgtgCollectorBackend:
         "dev": 60 * 1,
     }
     FOOD_EMOJIS = ["🍕", "🍔", "🍟", "🍗", "🍖", "🌭", "🍿", "🍛", "🍜", "🍝", "🍤"]
-    TIME_BETWEEN_SEARCHES = 10
+    TIME_BETWEEN_SEARCHES = 2
 
     # pylint: disable=too-many-arguments
     def __init__(
@@ -44,6 +44,9 @@ class TgtgCollectorBackend:
 
         self.last_query_firebase_time: T.Optional[float] = None
 
+    def _get_file_basename(self, uuid: str) -> str:
+        return f"tgtg_search_{uuid}"
+
     def _check_and_run_search_and_email(self) -> None:
         searches: T.Dict[str, too_good_to_go_data_types.Search] = self.firebase_user.get_searches()
 
@@ -59,14 +62,14 @@ class TgtgCollectorBackend:
         user_dir = os.path.join(self.tgtg_data_dir, user)
         file_util.make_sure_path_exists(user_dir, ignore_extension=True)
 
-        tgtg_data_json_file = os.path.join(user_dir, f"tgtg_search_{uuid}.json")
+        tgtg_data_json_file = os.path.join(user_dir, f"{self._get_file_basename(uuid)}.json")
         return tgtg_data_json_file
 
     def _get_tgtg_csv_file(self, user: str, uuid: str) -> str:
         user_dir = os.path.join(self.tgtg_data_dir, user)
         file_util.make_sure_path_exists(user_dir, ignore_extension=True)
 
-        tgtg_data_csv_file = os.path.join(user_dir, f"tgtg_search_{uuid}.csv")
+        tgtg_data_csv_file = os.path.join(user_dir, f"{self._get_file_basename(uuid)}.csv")
         return tgtg_data_csv_file
 
     def _get_attachments(self, user: str, uuid: str) -> T.List[str]:
@@ -164,7 +167,9 @@ class TgtgCollectorBackend:
 
         for attachment in attachments:
             try:
-                self.firebase_user.delete_search_uploads(search["user"], uuid)
+                self.firebase_user.delete_search_uploads(
+                    search["user"], self._get_file_basename(uuid)
+                )
             except Exception as exception:  # pylint: disable=broad-except
                 log.print_warn(f"Failed to delete uploads: {exception}")
 
