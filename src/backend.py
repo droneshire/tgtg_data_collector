@@ -160,7 +160,7 @@ class TgtgCollectorBackend:
 
         attachments = self._get_attachments(search["user"], uuid)
 
-        log.print_bold(f"Deleting {len(attachments)} files")
+        log.print_bold(f"Deleting {len(attachments)} files for {uuid}")
 
         for attachment in attachments:
             try:
