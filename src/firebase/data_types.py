@@ -2,7 +2,6 @@ import datetime
 import typing as T
 
 from constants import INTERVALS
-from too_good_to_go.data_types import GetItemResponse
 
 
 class HealthMonitor(T.TypedDict):
@@ -45,7 +44,6 @@ class Search(T.TypedDict):
     lastSearchTime: float
     lastDownloadTime: float
     numResults: int
-    data: T.Dict[str, GetItemResponse]
 
 
 class Searches(T.TypedDict):
