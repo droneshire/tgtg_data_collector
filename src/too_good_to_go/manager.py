@@ -149,24 +149,44 @@ class TgtgManager:
     ) -> None:
         file_util.make_sure_path_exists(json_file)
 
-        if os.path.isfile(json_file):
-            with open(json_file, "r", encoding="utf-8") as infile:
-                try:
-                    data = json.load(infile)
-                except json.JSONDecodeError:
-                    # Handle the case where the file is empty or not valid JSON
-                    data = {}
-        else:
-            data = {}
-
         date_now = datetime.datetime.now()
         date_localized = time_zone.localize(date_now)
         date_formated = date_localized.strftime("%Y-%m-%d %H:%M:%S")
+        new_data = {date_formated: get_item_response}
+        new_data_json = json.dumps(new_data, indent=4)
 
-        data[date_formated] = get_item_response
+        # in order to not need to read the whole file, we can just append to the end. this assumes
+        # that the file is a valid json file and that the first and last characters are '{' and '}'
+        if os.path.isfile(json_file):
+            with open(json_file, "a+", encoding="utf-8") as outfile:
+                outfile.seek(0, os.SEEK_END)
+                pos = outfile.tell() - 1
 
-        with open(json_file, "w", encoding="utf-8") as outfile:
-            json.dump(data, outfile, indent=4)
+                if pos > 0:
+                    # Find the position of the last closing brace '}'
+                    while pos >= 0 and outfile.read(1) != "}":
+                        pos -= 1
+
+                    if pos >= 0:
+                        outfile.seek(pos)  # Go to the last '}'
+                        outfile.truncate()  # Truncate from there
+
+                        # Move to the end of the last content line (before a newline)
+                        while pos >= 0 and outfile.read(1) != "\n":
+                            pos -= 1
+
+                        if pos >= 0:
+                            outfile.seek(pos + 1)
+                            outfile.write(",")
+
+                outfile.write("\n")
+        else:
+            with open(json_file, "w", encoding="utf-8") as outfile:
+                outfile.write("{\n")
+
+        with open(json_file, "a", encoding="utf-8") as outfile:
+            outfile.write(new_data_json[1:-1])
+            outfile.write("}")
 
     @staticmethod
     def convert_to_price(data: T.Dict[str, T.Any], field: str) -> str:

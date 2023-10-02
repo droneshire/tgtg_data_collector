@@ -10,7 +10,7 @@ from firebase.user import FirebaseUser
 from too_good_to_go import data_types as too_good_to_go_data_types
 from too_good_to_go.manager import TgtgManager
 from too_good_to_go.search_interval import is_time_to_search
-from util import email, file_util, fmt_util, log, short_url
+from util import email, file_util, fmt_util, log, short_url, wait
 
 
 class TgtgCollectorBackend:
@@ -19,7 +19,7 @@ class TgtgCollectorBackend:
         "dev": 60 * 1,
     }
     FOOD_EMOJIS = ["🍕", "🍔", "🍟", "🍗", "🍖", "🌭", "🍿", "🍛", "🍜", "🍝", "🍤"]
-    TIME_BETWEEN_SEARCHES = 30
+    TIME_BETWEEN_SEARCHES = 10
 
     # pylint: disable=too-many-arguments
     def __init__(
@@ -53,7 +53,7 @@ class TgtgCollectorBackend:
             self._maybe_run_search(search_hash, search)
             self._maybe_send_email(search_hash, search)
             self._maybe_delete_search_files(search_hash, search)
-            time.sleep(self.time_between_searches)
+            wait.wait(self.time_between_searches)
 
     def _get_tgtg_data_file(self, user: str, uuid: str) -> str:
         user_dir = os.path.join(self.tgtg_data_dir, user)
@@ -176,9 +176,9 @@ class TgtgCollectorBackend:
         timezone = pytz.timezone(search["time_zone"])
 
         if self.verbose:
-            log.print_normal(f"Checking search: {json.dumps(search, indent=4)}")
+            log.print_bright(f"Checking search: {json.dumps(search, indent=4)}")
         else:
-            log.print_normal(f"Checking search: {search['search_name']}")
+            log.print_bright(f"Checking search: {search['search_name']}")
 
         if not is_time_to_search(
             time.time(),
