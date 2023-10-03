@@ -70,6 +70,7 @@ NULL_USER = User(
             offset=-7,
             value="America/Los_Angeles",
         ),
+        deleteDataOnDownload=False,
     ),
     searches=Searches(
         items={},
