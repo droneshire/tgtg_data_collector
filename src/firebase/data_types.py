@@ -29,6 +29,7 @@ class TimeZone(T.TypedDict):
 class Preferences(T.TypedDict):
     notifications: Notifications
     searchTimeZone: TimeZone
+    deleteDataOnDownload: bool
 
 
 class Region(T.TypedDict):

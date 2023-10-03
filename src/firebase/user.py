@@ -387,6 +387,9 @@ class FirebaseUser:
                     continue
 
                 time_zone = safe_get(dict(info), "preferences.searchTimeZone.value".split("."), "")
+                delete_data_on_download = safe_get(
+                    dict(info), "preferences.deleteDataOnDownload".split("."), False
+                )
                 hour_start = safe_get(dict(info), "searches.collectionTimeStart".split("."), 0)
                 hour_interval = safe_get(
                     dict(info), "searches.hoursBetweenCollection".split("."), 0
@@ -422,6 +425,7 @@ class FirebaseUser:
                         email_data=item.get("sendEmail", False),
                         erase_data=item.get("eraseData", False),
                         num_results=item.get("numResults", 0),
+                        delete_data_on_download=delete_data_on_download,
                     )
 
                     search_hash = self.get_uuid(search, self.verbose)

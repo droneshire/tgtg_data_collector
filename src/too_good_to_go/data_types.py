@@ -19,6 +19,7 @@ class Search(TypedDict):
     email_data: bool
     erase_data: bool
     num_results: int
+    delete_data_on_download: bool
 
 
 class Price(TypedDict):
