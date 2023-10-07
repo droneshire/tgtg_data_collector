@@ -30,6 +30,7 @@ class Preferences(T.TypedDict):
     notifications: Notifications
     searchTimeZone: TimeZone
     deleteDataOnDownload: bool
+    storeRawData: bool
 
 
 class Region(T.TypedDict):
@@ -71,6 +72,7 @@ NULL_USER = User(
             value="America/Los_Angeles",
         ),
         deleteDataOnDownload=False,
+        storeRawData=False,
     ),
     searches=Searches(
         items={},

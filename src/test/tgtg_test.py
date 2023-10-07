@@ -64,6 +64,7 @@ class TgtgTest(unittest.TestCase):
                 "erase_data": False,
                 "num_results": 0,
                 "delete_data_on_download": False,
+                "store_raw_data": False,
             }
         )
 

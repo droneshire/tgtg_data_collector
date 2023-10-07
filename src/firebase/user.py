@@ -426,6 +426,9 @@ class FirebaseUser:
                         erase_data=item.get("eraseData", False),
                         num_results=item.get("numResults", 0),
                         delete_data_on_download=delete_data_on_download,
+                        store_raw_data=safe_get(
+                            dict(info), "preferences.storeRawData".split("."), False
+                        ),
                     )
 
                     search_hash = self.get_uuid(search, self.verbose)

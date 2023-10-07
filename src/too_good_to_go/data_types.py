@@ -20,6 +20,7 @@ class Search(TypedDict):
     erase_data: bool
     num_results: int
     delete_data_on_download: bool
+    store_raw_data: bool
 
 
 class Price(TypedDict):
