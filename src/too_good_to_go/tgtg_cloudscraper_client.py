@@ -43,10 +43,9 @@ class TgtgCloudscraperClient(TgtgClient):
             cookie,
         )
 
-        self.session = cloudscraper.session(proxies=proxies, timeout=timeout)
+        self.session = cloudscraper.session()
         self.session.headers = super()._headers
 
     def reset_session(self, proxies: T.Dict[str, str]) -> None:
         log.print_bright(f"Resetting session with new proxy: {proxies}")
-        self.session = cloudscraper.session(proxies=proxies, timeout=self.timeout)
-        self.session.headers = super()._headers
+        super().proxies = proxies
