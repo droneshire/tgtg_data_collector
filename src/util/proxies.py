@@ -15,6 +15,10 @@ class Proxies:
 
 
 class ScrapeDogProxy(Proxies):
+    """_summary_
+    https://api.scrapingdog.com/
+    """
+
     def __init__(self):
         dotenv.load_dotenv()
         api_key = os.getenv("SCRAPER_DOG_PROXY_API_KEY")
@@ -27,6 +31,10 @@ class ScrapeDogProxy(Proxies):
 
 
 class FreeProxyProxy(Proxies):
+    """
+    https://pypi.org/project/free-proxy/
+    """
+
     def get(self):
         proxy = {"http": FreeProxy(elite=True, rand=True).get()}
         log.print_bright(f"Using proxy: {proxy}")
