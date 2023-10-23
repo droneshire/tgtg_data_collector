@@ -28,6 +28,7 @@ class ScrapeDogProxy(Proxies):
         }
 
     def get(self):
+        raise Exception("Scraper Dog does not work as proxy param, need to wrap requests")
         log.print_bright(f"Using proxy: {self.proxy_url}")
         return self.proxy_url
 
