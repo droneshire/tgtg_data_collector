@@ -47,10 +47,10 @@ test:
 # $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_parsing_costs_from_api_data
 
 run_worker_dev:
-	$(RUN_PY) executables.tgtg_worker --mode dev --time-between-loop 15 --verbose
+	$(RUN_PY) executables.tgtg_worker --mode dev --time-between-loop 15 --verbose --use-proxies
 
 run_worker_prod:
-	$(RUN_PY) executables.tgtg_worker --mode prod --time-between-loop 20
+	$(RUN_PY) executables.tgtg_worker --mode prod --time-between-loop 20 --use-proxies
 
 create_account:
 	$(RUN_PY) executables.tgtg_api_setup --email $(email)
