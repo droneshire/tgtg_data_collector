@@ -6,6 +6,8 @@ import os
 import dotenv
 from fp.fp import FreeProxy
 
+from util import log
+
 
 class Proxies:
     def get(self):
@@ -20,9 +22,12 @@ class ScrapeDogProxy(Proxies):
         self.proxy_url = {"http:", f"http://scrapingdog:{api_key}@proxy.scrapingdog.com:8081"}
 
     def get(self):
+        log.print_bright(f"Using proxy: {self.proxy_url}")
         return self.proxy_url
 
 
 class FreeProxyProxy(Proxies):
     def get(self):
-        return {"http": FreeProxy(elite=True, rand=True).get()}
+        proxy = {"http": FreeProxy(elite=True, rand=True).get()}
+        log.print_bright(f"Using proxy: {proxy}")
+        return proxy

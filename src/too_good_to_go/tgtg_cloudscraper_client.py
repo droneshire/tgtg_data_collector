@@ -48,4 +48,4 @@ class TgtgCloudscraperClient(TgtgClient):
 
     def reset_session(self, proxies: T.Dict[str, str]) -> None:
         log.print_bright(f"Resetting session with new proxy: {proxies}")
-        super().proxies = proxies
+        self.proxies = proxies
