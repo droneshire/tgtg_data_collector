@@ -1,9 +1,12 @@
 """
 TgtgClient implementation using cloudscraper for the request session.
 """
+import typing as T
 
 import cloudscraper
 from tgtg import BASE_URL, DEFAULT_ACCESS_TOKEN_LIFETIME, TgtgClient
+
+from util import log
 
 
 class TgtgCloudscraperClient(TgtgClient):
@@ -40,5 +43,10 @@ class TgtgCloudscraperClient(TgtgClient):
             cookie,
         )
 
-        self.session = cloudscraper.session()
+        self.session = cloudscraper.session(proxies=proxies, timeout=timeout)
+        self.session.headers = super()._headers
+
+    def reset_session(self, proxies: T.Dict[str, str]) -> None:
+        log.print_bright(f"Resetting session with new proxy: {proxies}")
+        self.session = cloudscraper.session(proxies=proxies, timeout=self.timeout)
         self.session.headers = super()._headers

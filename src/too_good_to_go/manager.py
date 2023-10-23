@@ -9,21 +9,31 @@ import tgtg.exceptions as tgtg_exceptions
 
 from too_good_to_go import data_types
 from too_good_to_go.tgtg_cloudscraper_client import TgtgCloudscraperClient as TgtgClient
-from util import csv_logger, file_util, log
+from util import csv_logger, file_util, log, proxies
 from util.dict_util import safe_get
+
+PROXY = proxies.FreeProxyProxy
 
 
 class TgtgManager:
     MAX_PAGES_PER_REGION = 20
     MAX_ITEMS_PER_PAGE = 400
 
-    def __init__(self, email: str, credentials_file: str, allow_create: bool = False) -> None:
+    def __init__(
+        self,
+        email: str,
+        credentials_file: str,
+        allow_create: bool = False,
+        use_proxies: bool = True,
+    ) -> None:
         self.credentials_file = credentials_file
         self.email = email
         self.allow_create = allow_create
 
         self.client: T.Optional[TgtgClient] = None
         self.credentials: T.Dict[str, T.Any] = {}
+
+        self.proxies: T.Any = PROXY() if use_proxies else None
 
         assert self.MAX_ITEMS_PER_PAGE <= 400, "MAX_ITEMS_PER_PAGE must be <= 400"
 
@@ -33,7 +43,10 @@ class TgtgManager:
         if not self.credentials and self.allow_create:
             self.credentials = self.create_account()
 
-        self.client = TgtgClient(**self.credentials)
+        params = self.credentials
+        if self.proxies is not None:
+            params.update({"proxies": self.proxies.get()})
+        self.client = TgtgClient(**params)
 
         assert self.client is not None, "Client not initialized!"
 
@@ -134,7 +147,8 @@ class TgtgManager:
             except tgtg_exceptions.TgtgAPIError as exception:
                 log.print_fail(f"Failed to get items for page {page}!")
                 log.print_fail(f"{exception}")
-                input("Press Enter to continue...")
+                if self.proxies is not None:
+                    self.client.reset_session(self.proxies.get())
 
             if not new_data or not isinstance(new_data, list):
                 break

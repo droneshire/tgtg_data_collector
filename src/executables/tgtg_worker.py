@@ -34,6 +34,7 @@ def run_loop(args: argparse.Namespace) -> None:
         os.environ["TGTG_DEFAULT_API_EMAIL"],
         os.environ["TGTG_DEFAULT_API_CREDENTIALS_FILE"],
         allow_create=True,
+        use_proxies=args.use_proxies,
     )
     firebase_credentials_file = os.environ["FIREBASE_CREDENTIALS_FILE"]
     firebase_storage_path = os.environ["FIREBASE_STORAGE_PATH"]

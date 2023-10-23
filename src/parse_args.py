@@ -47,4 +47,9 @@ def parse_args() -> argparse.Namespace:
         help="Time between each loop in seconds",
         default=60,
     )
+    parser.add_argument(
+        "--use-proxies",
+        action="store_true",
+        help="Use proxies for requests",
+    )
     return parser.parse_args()
