@@ -23,7 +23,9 @@ class ScrapeDogProxy(Proxies):
         dotenv.load_dotenv()
         api_key = os.getenv("SCRAPER_DOG_PROXY_API_KEY")
         assert api_key is not None, "Missing SCRAPER_DOG_PROXY_API_KEY in .env"
-        self.proxy_url = {"http:": f"http://scrapingdog:{api_key}@proxy.scrapingdog.com:8081"}
+        self.proxy_url = {
+            "http:": f"http://scrapingdog:{api_key}-country=us@proxy.scrapingdog.com:8081"
+        }
 
     def get(self):
         log.print_bright(f"Using proxy: {self.proxy_url}")
@@ -36,6 +38,12 @@ class FreeProxyProxy(Proxies):
     """
 
     def get(self):
-        proxy = {"http": FreeProxy(elite=True, rand=True).get()}
+        proxy = {"http": FreeProxy(rand=True).get()}
         log.print_bright(f"Using proxy: {proxy}")
         return proxy
+
+
+"""
+Consider Scraping Bee at a later time...
+https://www.scrapingbee.com/
+"""
