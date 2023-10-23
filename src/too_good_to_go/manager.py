@@ -132,6 +132,9 @@ class TgtgManager:
 
         log.print_bold("Searching region...")
 
+        if self.proxies is not None:
+            self.client.reset_session(self.proxies.get())
+
         for page in range(1, self.MAX_PAGES_PER_REGION + 1):
             log.print_normal(f"Searching page {page} out of max {self.MAX_PAGES_PER_REGION}")
             new_data = None
