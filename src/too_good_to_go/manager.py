@@ -12,7 +12,7 @@ from too_good_to_go.tgtg_cloudscraper_client import TgtgCloudscraperClient as Tg
 from util import csv_logger, file_util, log, proxies
 from util.dict_util import safe_get
 
-PROXY = proxies.FreeProxyProxy
+PROXY = proxies.ScrapeDogProxy
 
 
 class TgtgManager:
