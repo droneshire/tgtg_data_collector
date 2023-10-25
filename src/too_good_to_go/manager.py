@@ -9,7 +9,7 @@ import tgtg.exceptions as tgtg_exceptions
 
 from too_good_to_go import data_types
 from too_good_to_go.tgtg_cloudscraper_client import TgtgCloudscraperClient as TgtgClient
-from util import csv_logger, file_util, log, proxies
+from util import csv_logger, file_util, log, proxies, wait
 from util.dict_util import safe_get
 
 PROXY = proxies.ScrapeDogProxy
@@ -112,7 +112,8 @@ class TgtgManager:
         self.delete_credentials()
 
         log.print_ok_blue_arrow("Sleeping for 10-20 minutes...")
-        time.sleep(60 * random.uniform(10, 20))
+
+        wait.wait(60 * random.uniform(10, 20))
 
         log.print_ok_blue_arrow("Re-initializing...")
         self.init()
