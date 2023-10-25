@@ -101,6 +101,27 @@ class TgtgManager:
 
         return credentials
 
+    def _handle_captcha_failure(self) -> None:
+        log.print_fail("Captcha failure detected!")
+
+        log.print_ok_blue_arrow("Resetting session...")
+
+        if self.proxies is not None and self.client is not None:
+            self.client.reset_session(self.proxies.get())
+
+        self.delete_credentials()
+
+        log.print_ok_blue_arrow("Sleeping for 10-20 minutes...")
+        time.sleep(60 * random.uniform(10, 20))
+
+        log.print_ok_blue_arrow("Re-initializing...")
+        self.init()
+
+    def delete_credentials(self) -> None:
+        if os.path.exists(self.credentials_file):
+            log.print_ok_blue_arrow("Deleting credentials...")
+            os.remove(self.credentials_file)
+
     def load_credentials(self) -> T.Dict[str, T.Any]:
         credentials = {}
 
@@ -132,9 +153,6 @@ class TgtgManager:
 
         log.print_bold("Searching region...")
 
-        if self.proxies is not None:
-            self.client.reset_session(self.proxies.get())
-
         for page in range(1, self.MAX_PAGES_PER_REGION + 1):
             log.print_normal(f"Searching page {page} out of max {self.MAX_PAGES_PER_REGION}")
             new_data = None
@@ -150,8 +168,11 @@ class TgtgManager:
             except tgtg_exceptions.TgtgAPIError as exception:
                 log.print_fail(f"Failed to get items for page {page}!")
                 log.print_fail(f"{exception}")
-                if self.proxies is not None:
-                    self.client.reset_session(self.proxies.get())
+                status_code = exception.args[0]
+                if status_code == 403:
+                    self._handle_captcha_failure()
+                else:
+                    raise exception
 
             if not new_data or not isinstance(new_data, list):
                 break

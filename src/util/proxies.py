@@ -39,9 +39,3 @@ class FreeProxyProxy(Proxies):
         proxy = {"http": FreeProxy(rand=True).get()}
         log.print_bright(f"Using proxy: {proxy}")
         return proxy
-
-
-"""
-Consider Scraping Bee at a later time...
-https://www.scrapingbee.com/
-"""

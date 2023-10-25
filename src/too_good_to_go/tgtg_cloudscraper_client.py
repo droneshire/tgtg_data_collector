@@ -6,8 +6,6 @@ import typing as T
 import cloudscraper
 from tgtg import BASE_URL, DEFAULT_ACCESS_TOKEN_LIFETIME, TgtgClient
 
-from util import log
-
 
 class TgtgCloudscraperClient(TgtgClient):
     # pylint: disable=too-many-arguments

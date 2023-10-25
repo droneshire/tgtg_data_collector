@@ -27,7 +27,7 @@ FIREBASE_STORAGE_PATH="too-good-to-go-data-collect.appspot.com"
 
 BOT_PIDFILE="tgtg_worker.pid"
 RESET_PIDFILE="reset_tgtg_worker.pid"
-BOT_START_COMMAND='tmux send-keys -t tgtg-worker-bot:0.0 "tgtg_bot_dir; git pull; make run_worker" C-m'
+BOT_START_COMMAND='tmux send-keys -t tgtg:0.0 "tgtg_bot_dir; git clean; git pull; make install; make run_worker_prod" C-m'
 
 ```
 
