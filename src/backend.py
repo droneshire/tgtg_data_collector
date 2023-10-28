@@ -185,6 +185,8 @@ class TgtgCollectorBackend:
     def _maybe_run_search(self, uuid: str, search: too_good_to_go_data_types.Search) -> None:
         timezone = pytz.timezone(search["time_zone"])
 
+        self.tgtg_manager.check_and_maybe_rotate_credentials()
+
         if self.verbose:
             log.print_bright(f"Checking search: {json.dumps(search, indent=4)}")
         else:

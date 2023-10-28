@@ -53,7 +53,7 @@ run_worker_prod:
 	$(RUN_PY) executables.tgtg_worker --mode prod --time-between-loop 20 --use-proxies
 
 create_account:
-	$(RUN_PY) executables.tgtg_api_setup --email $(email)
+	$(RUN_PY) executables.tgtg_api_setup --email $(email) --number-of-credentials $(emails)
 
 reset_monitor:
 	$(RUN_PY) executables.reset_monitor

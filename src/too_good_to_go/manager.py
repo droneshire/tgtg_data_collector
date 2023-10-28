@@ -9,7 +9,7 @@ import tgtg.exceptions as tgtg_exceptions
 
 from too_good_to_go import data_types
 from too_good_to_go.tgtg_cloudscraper_client import TgtgCloudscraperClient as TgtgClient
-from util import csv_logger, file_util, log, proxies, wait
+from util import csv_logger, file_util, fmt_util, log, proxies, wait
 from util.dict_util import safe_get
 
 PROXY = proxies.ScrapeDogProxy
@@ -18,6 +18,7 @@ PROXY = proxies.ScrapeDogProxy
 class TgtgManager:
     MAX_PAGES_PER_REGION = 20
     MAX_ITEMS_PER_PAGE = 400
+    CREDENTIAL_ROTATION_TIME = 60 * 60 * 24  # 24 hours
 
     def __init__(
         self,
@@ -35,6 +36,7 @@ class TgtgManager:
 
         self.proxies: T.Any = PROXY() if use_proxies else None
 
+        self.last_time_credentials_rotated: T.Optional[float] = None
         assert self.MAX_ITEMS_PER_PAGE <= 400, "MAX_ITEMS_PER_PAGE must be <= 400"
 
     def init(self) -> None:
@@ -61,7 +63,7 @@ class TgtgManager:
         file_util.make_sure_path_exists(os.path.dirname(self.credentials_file))
 
         if os.path.exists(self.credentials_file):
-            self.read_credentials()
+            all_credentials = self.read_credentials()
         else:
             all_credentials = {}
 
@@ -83,7 +85,7 @@ class TgtgManager:
 
     def create_account(self) -> T.Dict[str, T.Any]:
         try:
-            TgtgClient().signup_by_email(email=self.email)
+            TgtgClient(proxies=self.proxies.get()).signup_by_email(email=self.email)
         except TypeError:
             log.print_fail(f"Failed to create account for {self.email}!")
             return {}
@@ -143,6 +145,27 @@ class TgtgManager:
         log.print_bright(f"{json.dumps(credentials, indent=4)}")
 
         return credentials
+
+    def _rotate_credentials(self) -> None:
+        log.print_ok_arrow(f"Rotating credentials to {self.email}")
+        all_credentials = self.read_credentials()
+        for email in all_credentials:
+            if email == self.email:
+                continue
+            self.email = email
+            break
+
+        self.init()
+
+    def check_and_maybe_rotate_credentials(self) -> None:
+        # rotate the credentials every 24 hours
+        self.last_time_credentials_rotated = self.last_time_credentials_rotated or 0
+
+        time_since_last_refresh = time.time() - self.last_time_credentials_rotated
+        time_since_last_refresh_pretty = fmt_util.get_pretty_seconds(int(time_since_last_refresh))
+        log.print_ok_blue(f"Time since last credential refresh: {time_since_last_refresh_pretty}")
+        if time_since_last_refresh > self.CREDENTIAL_ROTATION_TIME:
+            self._rotate_credentials()
 
     def search_region(self, region: data_types.Region) -> data_types.GetItemResponse:
         if self.client is None:
