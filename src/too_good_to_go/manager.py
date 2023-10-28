@@ -159,7 +159,7 @@ class TgtgManager:
 
     def check_and_maybe_rotate_credentials(self) -> None:
         # rotate the credentials every 24 hours
-        self.last_time_credentials_rotated = self.last_time_credentials_rotated or 0
+        self.last_time_credentials_rotated = self.last_time_credentials_rotated or time.time()
 
         time_since_last_refresh = time.time() - self.last_time_credentials_rotated
         time_since_last_refresh_pretty = fmt_util.get_pretty_seconds(int(time_since_last_refresh))
