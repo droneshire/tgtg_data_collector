@@ -29,7 +29,8 @@ class TgtgManager:
         use_proxies: bool = True,
     ) -> None:
         self.credentials_file = credentials_file
-        self.email = email
+        self.email = self._get_random_credential_email(email)
+
         self.allow_create = allow_create
 
         self.client: T.Optional[TgtgClient] = None
@@ -169,6 +170,13 @@ class TgtgManager:
             break
 
         self.init()
+
+    def _get_random_credential_email(self, default: str) -> str:
+        all_credentials = self.read_credentials()
+        if not all_credentials:
+            return default
+
+        return random.choice(list(all_credentials.keys()))
 
     def check_and_maybe_rotate_credentials(self) -> None:
         # rotate the credentials every 24 hours
