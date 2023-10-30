@@ -275,7 +275,16 @@ class TgtgManager:
         if self.client is None:
             return
 
-        self.client.login()
+        try:
+            self.client.login()
+        except tgtg_exceptions.TgtgAPIError as exception:
+            log.print_fail(f"Failed to refresh token for {self.email}!")
+            log.print_fail(f"{exception}")
+            status_code = exception.args[0]
+            if status_code == 403:
+                self._handle_captcha_failure()
+            else:
+                raise exception
 
     def _get_flatten_data(self, timestamp: str, data: T.Dict) -> T.Dict:
         flattened = {}
