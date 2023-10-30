@@ -115,19 +115,26 @@ class TgtgManager:
         if self.proxies is not None and self.client is not None:
             self.client.reset_session(self.proxies.get())
 
-        self.delete_credentials()
+        self.delete_credentials(self.email)
 
         log.print_ok_blue_arrow("Sleeping for 10-20 minutes...")
 
         wait.wait(random.uniform(30, 60))
 
+        self._rotate_credentials()
+
         log.print_ok_blue_arrow("Re-initializing...")
         self.init()
 
-    def delete_credentials(self) -> None:
-        if os.path.exists(self.credentials_file):
-            log.print_ok_blue_arrow("Deleting credentials...")
-            os.remove(self.credentials_file)
+    def delete_credentials(self, email: T.Optional[str] = None) -> None:
+        if email is None:
+            if os.path.exists(self.credentials_file):
+                log.print_ok_blue_arrow("Deleting credentials...")
+                os.remove(self.credentials_file)
+            return
+
+        empty_credentials: T.Dict[str, T.Any] = {}
+        self.save_credentials(empty_credentials)
 
     def load_credentials(self) -> T.Dict[str, T.Any]:
         credentials = {}
@@ -151,12 +158,13 @@ class TgtgManager:
         return credentials
 
     def _rotate_credentials(self) -> None:
-        log.print_ok_arrow(f"Rotating credentials to {self.email}")
         all_credentials = self.read_credentials()
         for email in all_credentials:
             if email == self.email:
                 continue
             self.email = email
+
+            log.print_ok_arrow(f"Rotating credentials to {self.email}")
             break
 
         self.init()
