@@ -129,11 +129,12 @@ class TgtgManager:
     def delete_credentials(self, email: T.Optional[str] = None) -> None:
         if email is None:
             if os.path.exists(self.credentials_file):
-                log.print_ok_blue_arrow("Deleting credentials...")
+                log.print_ok_blue_arrow("Deleting all credentials...")
                 os.remove(self.credentials_file)
             return
 
         empty_credentials: T.Dict[str, T.Any] = {}
+        log.print_ok_blue_arrow(f"Deleting {email} credentials...")
         self.save_credentials(empty_credentials)
 
     def load_credentials(self) -> T.Dict[str, T.Any]:
