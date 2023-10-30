@@ -16,8 +16,6 @@ from constants import PROJECT_NAME
 from firebase.admin import FirebaseAdmin
 from util import log, wait
 
-dotenv.load_dotenv(".env")
-
 TIME_BETWEEN_CHECKS = 5
 
 
