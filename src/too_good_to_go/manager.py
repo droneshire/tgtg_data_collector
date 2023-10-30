@@ -1,3 +1,4 @@
+import contextlib
 import datetime
 import json
 import os
@@ -42,8 +43,11 @@ class TgtgManager:
     def init(self) -> None:
         self.credentials = self.load_credentials()
 
-        if not self.credentials and self.allow_create:
+        while not self.credentials and self.allow_create:
             self.credentials = self.create_account()
+            if not self.credentials:
+                log.print_fail("Failed to create account! Trying again in 60 seconds...")
+                wait.wait(60)
 
         params = self.credentials
         if self.proxies is not None:
@@ -115,7 +119,7 @@ class TgtgManager:
 
         log.print_ok_blue_arrow("Sleeping for 10-20 minutes...")
 
-        wait.wait(60 * random.uniform(10, 20))
+        wait.wait(random.uniform(30, 60))
 
         log.print_ok_blue_arrow("Re-initializing...")
         self.init()
@@ -167,6 +171,21 @@ class TgtgManager:
         if time_since_last_refresh > self.CREDENTIAL_ROTATION_TIME:
             self._rotate_credentials()
 
+    @contextlib.contextmanager
+    def handle_captcha_on_failure(self) -> T.Generator[None, None, None]:
+        did_fail = False
+        try:
+            yield
+        except tgtg_exceptions.TgtgAPIError as exception:
+            status_code = exception.args[0]
+            if status_code == 403:
+                did_fail = True
+            else:
+                raise exception
+
+        if did_fail:
+            self._handle_captcha_failure()
+
     def search_region(self, region: data_types.Region) -> data_types.GetItemResponse:
         if self.client is None:
             log.print_fail("Client not initialized!")
@@ -180,7 +199,7 @@ class TgtgManager:
         for page in range(1, self.MAX_PAGES_PER_REGION + 1):
             log.print_normal(f"Searching page {page} out of max {self.MAX_PAGES_PER_REGION}")
             new_data = None
-            try:
+            with self.handle_captcha_on_failure():
                 new_data = self.client.get_items(
                     favorites_only=False,
                     latitude=region["latitude"],
@@ -189,14 +208,6 @@ class TgtgManager:
                     page_size=self.MAX_ITEMS_PER_PAGE,
                     page=page,
                 )
-            except tgtg_exceptions.TgtgAPIError as exception:
-                log.print_fail(f"Failed to get items for page {page}!")
-                log.print_fail(f"{exception}")
-                status_code = exception.args[0]
-                if status_code == 403:
-                    self._handle_captcha_failure()
-                else:
-                    raise exception
 
             if not new_data or not isinstance(new_data, list):
                 break
@@ -275,16 +286,8 @@ class TgtgManager:
         if self.client is None:
             return
 
-        try:
+        with self.handle_captcha_on_failure():
             self.client.login()
-        except tgtg_exceptions.TgtgAPIError as exception:
-            log.print_fail(f"Failed to refresh token for {self.email}!")
-            log.print_fail(f"{exception}")
-            status_code = exception.args[0]
-            if status_code == 403:
-                self._handle_captcha_failure()
-            else:
-                raise exception
 
     def _get_flatten_data(self, timestamp: str, data: T.Dict) -> T.Dict:
         flattened = {}
