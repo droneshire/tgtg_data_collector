@@ -20,6 +20,7 @@ class TgtgManager:
     MAX_PAGES_PER_REGION = 20
     MAX_ITEMS_PER_PAGE = 400
     CREDENTIAL_ROTATION_TIME = 60 * 60 * 24  # 24 hours
+    CREDENTIAL_CREATE_COOLDOWN = 60 * 10
 
     def __init__(
         self,
@@ -39,30 +40,45 @@ class TgtgManager:
         self.proxies: T.Any = PROXY() if use_proxies else None
 
         self.last_time_credentials_rotated: T.Optional[float] = None
+
+        self.cooldown_time = self.CREDENTIAL_CREATE_COOLDOWN
         assert self.MAX_ITEMS_PER_PAGE <= 400, "MAX_ITEMS_PER_PAGE must be <= 400"
 
     def init(self) -> None:
         self.credentials = self.load_credentials()
 
-        while not self.credentials and self.allow_create:
+        if not self.credentials and self.allow_create:
             self.credentials = self.create_account()
             if not self.credentials:
-                log.print_fail("Failed to create account! Trying again in 60 seconds...")
-                wait.wait(60)
+                log.print_fail(
+                    f"Failed to create account! Trying again in {self.cooldown_time} seconds..."
+                )
 
-        params = self.credentials
-        if self.proxies is not None:
-            params.update({"proxies": self.proxies.get()})
-        self.client = TgtgClient(**params)
-
-        assert self.client is not None, "Client not initialized!"
-
+        self._update_client(self.credentials)
         self._refresh_token()
-
-        log.print_ok_blue_arrow(f"Logged in as {self.email}")
 
     def run(self) -> None:
-        self._refresh_token()
+        self._check_and_maybe_rotate_credentials()
+
+        did_login = False
+        with self._handle_captcha_on_failure_context():
+            did_login = self._refresh_token()
+
+        if not did_login and self.allow_create:
+            self.credentials = self.create_account()
+            if not self.credentials:
+                log.print_fail(
+                    f"Failed to create account! Trying again in {self.cooldown_time} seconds..."
+                )
+                wait.wait(self.cooldown_time)
+                self.cooldown_time *= 2
+                self.client = None
+            else:
+                self._update_client(self.credentials)
+                self._refresh_token()
+                self.cooldown_time = self.CREDENTIAL_CREATE_COOLDOWN
+        else:
+            self.cooldown_time = self.CREDENTIAL_CREATE_COOLDOWN
 
     def save_credentials(self, credentials: T.Dict[str, T.Any]) -> None:
         file_util.make_sure_path_exists(os.path.dirname(self.credentials_file))
@@ -108,6 +124,14 @@ class TgtgManager:
 
         return credentials
 
+    def _update_client(self, credentials: T.Dict[str, T.Any]) -> None:
+        params = credentials
+        if self.proxies is not None:
+            params.update({"proxies": self.proxies.get()})
+        self.client = TgtgClient(**params)
+
+        assert self.client is not None, "Client not initialized!"
+
     def _handle_captcha_failure(self) -> None:
         log.print_fail("Captcha failure detected!")
 
@@ -117,15 +141,9 @@ class TgtgManager:
             self.client.reset_session(self.proxies.get())
 
         self.delete_credentials(self.email)
-
-        log.print_ok_blue_arrow("Sleeping for 10-20 minutes...")
-
-        wait.wait(random.uniform(30, 60))
-
         self._rotate_credentials()
 
-        log.print_ok_blue_arrow("Re-initializing...")
-        self.init()
+        wait.wait(wait_time)
 
     def delete_credentials(self, email: T.Optional[str] = None) -> None:
         if email is None:
@@ -161,15 +179,25 @@ class TgtgManager:
 
     def _rotate_credentials(self) -> None:
         all_credentials = self.read_credentials()
-        for email in all_credentials:
+        new_email = None
+        for email, creds in all_credentials.items():
             if email == self.email:
                 continue
-            self.email = email
 
-            log.print_ok_arrow(f"Rotating credentials to {self.email}")
+            if not creds:
+                continue
+
+            new_email = email
             break
 
-        self.init()
+        if new_email is None:
+            log.print_fail("No credentials to rotate! Getting random one...")
+            new_email = self._get_random_credential_email(self.email)
+
+        log.print_ok_arrow(f"Rotating credentials to {new_email}")
+
+        self.email = new_email
+        self._update_client(all_credentials[new_email])
 
     def _get_random_credential_email(self, default: str) -> str:
         all_credentials = self.read_credentials()
@@ -178,7 +206,7 @@ class TgtgManager:
 
         return random.choice(list(all_credentials.keys()))
 
-    def check_and_maybe_rotate_credentials(self) -> None:
+    def _check_and_maybe_rotate_credentials(self) -> None:
         # rotate the credentials every 24 hours
         self.last_time_credentials_rotated = self.last_time_credentials_rotated or time.time()
 
@@ -189,7 +217,7 @@ class TgtgManager:
             self._rotate_credentials()
 
     @contextlib.contextmanager
-    def handle_captcha_on_failure(self) -> T.Generator[None, None, None]:
+    def _handle_captcha_on_failure_context(self) -> T.Generator[None, None, None]:
         did_fail = False
         try:
             yield
@@ -216,7 +244,7 @@ class TgtgManager:
         for page in range(1, self.MAX_PAGES_PER_REGION + 1):
             log.print_normal(f"Searching page {page} out of max {self.MAX_PAGES_PER_REGION}")
             new_data = None
-            with self.handle_captcha_on_failure():
+            with self._handle_captcha_on_failure_context():
                 new_data = self.client.get_items(
                     favorites_only=False,
                     latitude=region["latitude"],
@@ -296,15 +324,18 @@ class TgtgManager:
         price_string = f"{price:.2f} {code}"
         return price_string
 
-    def _refresh_token(self) -> None:
+    def _refresh_token(self) -> bool:
         # call the client login method to refresh the token if needed.
         # the login function will automatically refresh the token based on internal
         # refresh token logic
         if self.client is None:
-            return
+            return False
 
-        with self.handle_captcha_on_failure():
-            self.client.login()
+        self.client.login()
+
+        log.print_ok_blue_arrow(f"Logged in as {self.email}")
+
+        return True
 
     def _get_flatten_data(self, timestamp: str, data: T.Dict) -> T.Dict:
         flattened = {}
