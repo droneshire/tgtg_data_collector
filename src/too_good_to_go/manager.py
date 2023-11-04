@@ -19,8 +19,8 @@ PROXY = proxies.ScrapeDogProxy
 class TgtgManager:
     MAX_PAGES_PER_REGION = 20
     MAX_ITEMS_PER_PAGE = 400
-    CREDENTIAL_ROTATION_TIME = 60 * 60 * 24  # 24 hours
-    CREDENTIAL_CREATE_COOLDOWN = 60 * 10
+    CREDENTIAL_ROTATION_TIME = 30
+    CREDENTIAL_CREATE_COOLDOWN = 10
 
     def __init__(
         self,
@@ -142,8 +142,6 @@ class TgtgManager:
 
         self.delete_credentials(self.email)
         self._rotate_credentials()
-
-        wait.wait(wait_time)
 
     def delete_credentials(self, email: T.Optional[str] = None) -> None:
         if email is None:
