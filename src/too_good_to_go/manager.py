@@ -19,7 +19,7 @@ PROXY = proxies.ScrapeDogProxy
 class TgtgManager:
     MAX_PAGES_PER_REGION = 20
     MAX_ITEMS_PER_PAGE = 400
-    CREDENTIAL_ROTATION_TIME = 30
+    CREDENTIAL_ROTATION_TIME = 30 * 60
     CREDENTIAL_CREATE_COOLDOWN = 10
 
     def __init__(
@@ -196,6 +196,7 @@ class TgtgManager:
 
         self.email = new_email
         self._update_client(all_credentials[new_email])
+        self.last_time_credentials_rotated = time.time()
 
     def _get_random_credential_email(self, default: str) -> str:
         all_credentials = self.read_credentials()
@@ -205,7 +206,6 @@ class TgtgManager:
         return random.choice(list(all_credentials.keys()))
 
     def _check_and_maybe_rotate_credentials(self) -> None:
-        # rotate the credentials every 24 hours
         self.last_time_credentials_rotated = self.last_time_credentials_rotated or time.time()
 
         time_since_last_refresh = time.time() - self.last_time_credentials_rotated
