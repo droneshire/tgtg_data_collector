@@ -19,7 +19,7 @@ PROXY = proxies.ScrapeDogProxy
 class TgtgManager:
     MAX_PAGES_PER_REGION = 20
     MAX_ITEMS_PER_PAGE = 400
-    CREDENTIAL_ROTATION_TIME = 30 * 60
+    CREDENTIAL_ROTATION_TIME = 6 * 60 * 60
     CREDENTIAL_CREATE_COOLDOWN = 10
 
     def __init__(
