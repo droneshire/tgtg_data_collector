@@ -163,6 +163,12 @@ class FirebaseUser:
     def delete_search_uploads(self, user: str, uuid: str) -> None:
         storage_path = self._get_base_blob_storage_path(user, uuid)
         for blob in self.bucket.list_blobs(prefix=storage_path):
+            blob.reload()
+            time_created = blob.time_created
+
+            if time_created and time.time() - time_created.timestamp() < self.EXP_TIME_MINUTES * 60:
+                continue
+
             log.print_warn(f"Deleting upload {blob.name} for {user}")
             blob.delete()
 
