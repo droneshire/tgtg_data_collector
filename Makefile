@@ -58,6 +58,8 @@ create_account:
 reset_monitor:
 	$(RUN_PY) executables.reset_monitor
 
+test_run:
+	$(RUN_PY) executables.test_uploads
 clean:
 	rm -rf *.pickle
 

@@ -202,7 +202,7 @@ class FirebaseUser:
             expiration=datetime.timedelta(minutes=self.EXP_TIME_MINUTES),
             method="GET",
         )
-        log.print_ok_arrow(f"Download URL {download_url}")
+        log.print_ok_arrow(f"Download URL\n\n{download_url}")
         return str(download_url)
 
     def get_users(self) -> T.Dict[str, firebase_data_types.User]:

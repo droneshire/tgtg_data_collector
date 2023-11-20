@@ -132,7 +132,9 @@ class TgtgCollectorBackend:
                 url = None
             if url:
                 extension = os.path.splitext(attachment)[1]
-                urls.append(f"{extension.upper()}: {short_url.shorten_url(url)}")
+                string_url = f"{extension.upper()}: {short_url.shorten_url(url)}"
+                log.print_bright(string_url)
+                urls.append(string_url)
 
         message = self._format_email(search, urls)
 
