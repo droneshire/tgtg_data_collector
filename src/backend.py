@@ -6,6 +6,8 @@ import typing as T
 
 import pytz
 
+from demographics.google_places import GooglePlacesAPI
+from demographics.us_census import USCensusAPI
 from firebase.user import FirebaseUser
 from too_good_to_go import data_types as too_good_to_go_data_types
 from too_good_to_go.manager import TgtgManager
@@ -28,6 +30,8 @@ class TgtgCollectorBackend:
         email_obj: email.Email,
         tgtg_manager: TgtgManager,
         firebase_user: FirebaseUser,
+        census_api: USCensusAPI,
+        google_places_api: GooglePlacesAPI,
         tgtg_data_dir: str,
         mode: str = "prod",
         verbose: bool = False,
@@ -36,6 +40,8 @@ class TgtgCollectorBackend:
         self.email = email_obj
         self.tgtg_manager = tgtg_manager
         self.firebase_user = firebase_user
+        self.census_api = census_api
+        self.google_places_api = google_places_api
         self.firebase_user.send_email_callback = self._maybe_send_email
         self.tgtg_data_dir = tgtg_data_dir
         self.mode = mode
@@ -235,6 +241,14 @@ class TgtgCollectorBackend:
                 tgtg_data_json_file = self._get_tgtg_data_file(search["user"], uuid)
                 self.tgtg_manager.write_data_to_json(results, tgtg_data_json_file, timezone)
 
+            for result in results:
+                store: too_good_to_go_data_types.Store = result["store"]
+                location: too_good_to_go_data_types.StoreLocation = store["store_location"]
+                address = location["address"]
+                # TODO(ross): get the data we actually care about once we know
+                self.census_api.get_census_data("B01001_001E", address)
+                self.google_places_api.get_places_data(address)
+
             tgtg_data_csv_file = self._get_tgtg_csv_file(search["user"], uuid)
             self.tgtg_manager.write_data_to_csv(results, tgtg_data_csv_file, timezone)
 
@@ -243,7 +257,6 @@ class TgtgCollectorBackend:
         # this module doesn't really have a sense of user, just a list of searches. Would need
         # to make cache the db before running searches and then update the db after running on
         # a user by user basis instead of search by search.
-        # import pdb; pdb.set_trace()
         self.firebase_user.update_search_stats(
             search["user"], search["search_name"], time.time(), num_results
         )

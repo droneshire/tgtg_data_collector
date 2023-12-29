@@ -6,6 +6,8 @@ import dotenv
 
 from backend import TgtgCollectorBackend
 from constants import PROJECT_NAME
+from demographics.google_places import GooglePlacesAPI
+from demographics.us_census import USCensusAPI
 from firebase.user import FirebaseUser
 from parse_args import parse_args
 from too_good_to_go.manager import TgtgManager
@@ -41,10 +43,15 @@ def run_loop(args: argparse.Namespace) -> None:
     firebase_user = FirebaseUser(
         firebase_credentials_file, firebase_storage_path, verbose=args.verbose
     )
+    census_api = USCensusAPI(os.environ["CENSUS_API_KEY"])
+    google_places_api = GooglePlacesAPI(os.environ["GOOGLE_MAPS_PLACES_API_KEY"])
+
     backend = TgtgCollectorBackend(
         sender_email,
         tgtg_manager=tgtg_manager,
         firebase_user=firebase_user,
+        census_api=census_api,
+        google_places_api=google_places_api,
         tgtg_data_dir=args.tgtg_data_dir,
         mode=args.mode,
         verbose=args.verbose,
