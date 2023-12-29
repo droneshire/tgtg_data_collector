@@ -28,10 +28,7 @@ class GooglePlacesAPI:
         }
         headers = copy.deepcopy(self.HEADERS)
 
-        if fields:
-            headers["X-Goog-FieldMask"] = ",".join(fields)
-        else:
-            headers["X-Goog-FieldMask"] = self.DEFAULT_FIELDS
+        headers["X-Goog-FieldMask"] = ",".join(fields) if fields else self.DEFAULT_FIELDS
 
         url = os.path.join(self.base_url, "places:searchText")
         try:
