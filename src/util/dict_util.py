@@ -44,3 +44,21 @@ def flatten_dict(
         else:
             items[new_key] = value
     return items
+
+
+def find_in_nested_dict(data: T.Any, key: str) -> T.Any:
+    """Helper function to search for a key in a nested dictionary/list structure."""
+    if isinstance(data, dict):
+        for ikey, value in data.items():
+            if ikey == key:
+                return value
+            if isinstance(value, (dict, list)):
+                result = find_in_nested_dict(value, key)
+                if result is not None:
+                    return result
+    if isinstance(data, list):
+        for item in data:
+            result = find_in_nested_dict(item, key)
+            if result is not None:
+                return result
+    return None

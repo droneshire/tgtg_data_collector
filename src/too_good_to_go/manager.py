@@ -102,7 +102,11 @@ class TgtgManager:
             data = json.load(infile)
             all_credentials = dict(data) if data else {}
 
-        return all_credentials.get(email, {}) if email else all_credentials
+        email_result = all_credentials.get(email, {})
+        if isinstance(email_result, dict):
+            return email_result if email else all_credentials
+
+        return {}
 
     def create_account(self) -> T.Dict[str, T.Any]:
         try:

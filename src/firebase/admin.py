@@ -34,7 +34,10 @@ class FirebaseAdmin:
         doc_dict = doc.to_dict()
         if not doc_dict:
             return False
-        return doc_dict.get("reset", False)
+        result = doc_dict.get("reset", False)
+        if not isinstance(result, bool):
+            return False
+        return result
 
     def refresh(self) -> None:
         now = time.time()
