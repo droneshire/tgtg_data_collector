@@ -253,6 +253,8 @@ class TgtgCollectorBackend:
             tgtg_data_csv_file = self._get_tgtg_csv_file(search["user"], uuid)
             self.tgtg_manager.write_data_to_csv(results, tgtg_data_csv_file, timezone)
 
+        search["uuid"] = uuid
+
         # TODO(ross): this is pretty inefficient, we potentially update the firebase
         # database for each search rather than just doing it user by user at the end, but
         # this module doesn't really have a sense of user, just a list of searches. Would need

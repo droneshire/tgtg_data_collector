@@ -329,7 +329,10 @@ class FirebaseUser:
         new_count = previous_count + new_results
 
         self._update_search_fields(
-            user, search_name, ["lastSearchTime", "numResults"], [last_search_time, new_count]
+            user,
+            search_name,
+            ["lastSearchTime", "numResults", "uuid"],
+            [last_search_time, new_count],
         )
 
     def update_after_data_erase(self, user: str, search_name: str) -> None:

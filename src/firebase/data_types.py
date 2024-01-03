@@ -46,6 +46,7 @@ class Search(T.TypedDict):
     lastSearchTime: float
     lastDownloadTime: float
     numResults: int
+    uuid: str
 
 
 class Searches(T.TypedDict):
