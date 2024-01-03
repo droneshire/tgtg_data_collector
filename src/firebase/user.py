@@ -317,7 +317,7 @@ class FirebaseUser:
         return search_uuid_hex
 
     def update_search_stats(
-        self, user: str, search_name: str, last_search_time: float, new_results: int
+        self, user: str, search_name: str, last_search_time: float, new_results: int, uuid: str
     ) -> None:
         search_item = self._get_search_item(search_name)
 
@@ -332,7 +332,7 @@ class FirebaseUser:
             user,
             search_name,
             ["lastSearchTime", "numResults", "uuid"],
-            [last_search_time, new_count],
+            [last_search_time, new_count, uuid],
         )
 
     def update_after_data_erase(self, user: str, search_name: str) -> None:
