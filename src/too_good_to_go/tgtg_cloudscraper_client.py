@@ -2,16 +2,22 @@
 TgtgClient implementation using cloudscraper for the request session.
 """
 import datetime
+import json
 import sys
 import time
 import typing as T
 from http import HTTPStatus
+
+import undetected_chromedriver as uc
+from util import log
+from selenium.webdriver.chrome.options import Options
 
 import cloudscraper
 from tgtg import (
     AUTH_POLLING_ENDPOINT,
     BASE_URL,
     DEFAULT_ACCESS_TOKEN_LIFETIME,
+    SIGNUP_BY_EMAIL_ENDPOINT,
     TgtgAPIError,
     TgtgClient,
     TgtgLoginError,
@@ -39,6 +45,7 @@ class TgtgCloudscraperClient(TgtgClient):
         access_token_lifetime=DEFAULT_ACCESS_TOKEN_LIFETIME,
         device_type="ANDROID",
         cookie=None,
+        chrome_paths: T.Optional[T.Dict[str, str]] = None,
     ):
         super().__init__(
             url,
@@ -56,8 +63,34 @@ class TgtgCloudscraperClient(TgtgClient):
             cookie,
         )
 
+        self.captcha_timeout = 10.0
+
+        if chrome_paths:
+            self.web_driver = self._get_driver(chrome_paths=chrome_paths)
+        else:
+            self.web_driver = None
         self.session = cloudscraper.session()
         self.session.headers = super()._headers
+
+    @staticmethod
+    def _get_driver(chrome_paths: T.Dict[str, str]) -> uc.Chrome:
+        log.print_bold(f"Creating Chrome Driver...")
+        options = Options()
+        options.add_argument("--no-first-run --no-service-autorun --password-store=basic")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--window-size=960,540")
+        options.headless = False
+        options.binary_location = chrome_paths["browser"]
+
+        driver = uc.Chrome(
+            options=options, executable_path=chrome_paths["driver"], delay=10, headless=False
+        )
+
+        driver.set_page_load_timeout(120)
+        driver.implicitly_wait(120)
+
+        log.print_ok_arrow(f"Successfully created chrome driver")
+        return driver
 
     def reset_session(self, proxies: T.Dict[str, str]) -> None:
         self.proxies = proxies
@@ -103,3 +136,50 @@ class TgtgCloudscraperClient(TgtgClient):
         raise TgtgPollingError(
             f"Max retries ({MAX_POLLING_TRIES * POLLING_WAIT_TIME} seconds) reached. Try again."
         )
+
+    # Same here, overloading this call so that we can use selenium to get the cookies
+    def signup_by_email(
+        self,
+        *,
+        email,
+        name="",
+        country_id="GB",
+        newsletter_opt_in=False,
+        push_notification_opt_in=True,
+    ):
+        response = self.session.post(
+            self._get_url(SIGNUP_BY_EMAIL_ENDPOINT),
+            headers=self._headers,
+            json={
+                "country_id": country_id,
+                "device_type": self.device_type,
+                "email": email,
+                "name": name,
+                "newsletter_opt_in": newsletter_opt_in,
+                "push_notification_opt_in": push_notification_opt_in,
+            },
+            proxies=self.proxies,
+            timeout=self.timeout,
+        )
+        if response.status_code == HTTPStatus.OK:
+            self.access_token = response.json()["login_response"]["access_token"]
+            self.refresh_token = response.json()["login_response"]["refresh_token"]
+            self.last_time_token_refreshed = datetime.datetime.now()
+            self.user_id = response.json()["login_response"]["startup_data"]["user"]["user_id"]
+            return self
+        elif response.status_code == HTTPStatus.FORBIDDEN:
+            if self.web_driver is None:
+                raise TgtgAPIError(response.status_code, response.content)
+
+            timeout = self.captcha_timeout
+            response_bytes = response.content.decode("utf-8")
+            response_json = json.loads(response_bytes)
+            auth_url = response_json["url"]
+            self.web_driver.get(auth_url)
+            time.sleep(timeout)
+
+            cookies = self.web_driver.get_cookies()
+            for cookie in cookies:
+                print(cookie)
+        else:
+            raise TgtgAPIError(response.status_code, response.content)

@@ -241,14 +241,14 @@ class TgtgCollectorBackend:
                 tgtg_data_json_file = self._get_tgtg_data_file(search["user"], uuid)
                 self.tgtg_manager.write_data_to_json(results, tgtg_data_json_file, timezone)
 
-            for result in results["results"]:
-                address = str(result["store"]["store_location"]["address"])
-                # TODO(ross): get the data we actually care about once we know it
-                # and store it properly
-                census_data = self.census_api.get_census_data("B01001_001E", address)
-                google_data = self.google_places_api.search_places(address)
-                log.print_normal(f"Census data: {census_data}")
-                log.print_normal(f"Google data: {google_data}")
+            # for result in results["results"]:
+            #     address = str(result["store"]["store_location"]["address"]["address_line"])
+            #     # TODO(ross): get the data we actually care about once we know it
+            #     # and store it properly
+            #     census_data = self.census_api.get_census_data("B01001_001E", address)
+            #     # google_data = self.google_places_api.search_places(address)
+            #     log.print_normal(f"Census data: {census_data}")
+            #     log.print_normal(f"Google data: {google_data}")
 
             tgtg_data_csv_file = self._get_tgtg_csv_file(search["user"], uuid)
             self.tgtg_manager.write_data_to_csv(results, tgtg_data_csv_file, timezone)

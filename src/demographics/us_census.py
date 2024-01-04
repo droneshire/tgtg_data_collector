@@ -45,7 +45,7 @@ class USCensusAPI:
             result = censusgeocode.onelineaddress(address)
         except Exception as e:  # pylint: disable=broad-except
             log.print_warn(f"Could not find address: {address}")
-            log.print_fail_arrow(e)
+
             return None
 
         if result is None:
@@ -55,10 +55,6 @@ class USCensusAPI:
         log.print_bright(f"Found address: {address}")
 
         state = self._item("STATE", result)
-        assumed_state = address.rsplit(",")[-1].strip().split(" ")[0]
-        assert (
-            state == states.lookup(assumed_state).fips
-        ), f"State mismatch: {state} != {assumed_state}"
         county = self._item("COUNTY", result)
         tract = self._item("TRACT", result)
         block_group = self._item("BLKGRP", result)

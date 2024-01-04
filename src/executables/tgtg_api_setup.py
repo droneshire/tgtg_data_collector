@@ -1,4 +1,5 @@
 import argparse
+import dotenv
 import os
 import sys
 
@@ -33,6 +34,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    dotenv.load_dotenv(".env")
 
     log.print_ok_blue(f"Creating TGTG API account(s) for {args.email}...")
 
@@ -46,8 +48,15 @@ def main() -> None:
 
     credentials = []
 
+    chrome_paths = {
+        "browser": os.environ.get("CHROME_PATH_BROWSER", ""),
+        "driver": os.environ.get("CHROME_PATH_DRIVER", ""),
+    }
+
     for email in emails:
-        manager = TgtgManager(email, args.credentials_file, allow_create=True)
+        manager = TgtgManager(
+            email, args.credentials_file, chrome_paths=chrome_paths, allow_create=True
+        )
         credential = manager.create_account()
         if not credential:
             log.print_warn(f"Failed to create account for {email}")

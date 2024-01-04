@@ -26,6 +26,7 @@ class TgtgManager:
         self,
         email: str,
         credentials_file: str,
+        chrome_paths: T.Dict[str, str],
         allow_create: bool = False,
         use_proxies: bool = True,
     ) -> None:
@@ -33,6 +34,8 @@ class TgtgManager:
         self.email = self._get_random_credential_email(email)
 
         self.allow_create = allow_create
+
+        self.chrome_paths = chrome_paths
 
         self.client: T.Optional[TgtgClient] = None
         self.credentials: T.Dict[str, T.Any] = {}
@@ -110,12 +113,14 @@ class TgtgManager:
 
     def create_account(self) -> T.Dict[str, T.Any]:
         try:
-            TgtgClient(proxies=self.proxies.get()).signup_by_email(email=self.email)
+            TgtgClient(chrome_paths=self.chrome_paths, proxies=self.proxies.get()).signup_by_email(
+                email=self.email
+            )
         except TypeError:
             log.print_fail(f"Failed to create account for {self.email}!")
             return {}
         except tgtg_exceptions.TgtgAPIError as exception:
-            log.print_fail(f"Failed to create account for {self.email}!")
+            log.print_fail(f"TGTG: Failed to create account for {self.email}!")
             log.print_fail(f"{exception}")
             return {}
 

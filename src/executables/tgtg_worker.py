@@ -32,9 +32,16 @@ def run_loop(args: argparse.Namespace) -> None:
             "quiet": args.dry_run,
         }
     )
+
+    chrome_paths = {
+        "browser": os.environ.get("CHROME_PATH_BROWSER", ""),
+        "driver": os.environ.get("CHROME_PATH_DRIVER", ""),
+    }
+
     tgtg_manager = TgtgManager(
         os.environ["TGTG_DEFAULT_API_EMAIL"],
         os.environ["TGTG_DEFAULT_API_CREDENTIALS_FILE"],
+        chrome_paths=chrome_paths,
         allow_create=True,
         use_proxies=args.use_proxies,
     )
