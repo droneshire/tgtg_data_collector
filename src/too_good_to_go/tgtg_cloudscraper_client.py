@@ -8,11 +8,9 @@ import time
 import typing as T
 from http import HTTPStatus
 
-import undetected_chromedriver as uc
-from util import log
-from selenium.webdriver.chrome.options import Options
-
 import cloudscraper
+import undetected_chromedriver as uc
+from selenium.webdriver.chrome.options import Options
 from tgtg import (
     AUTH_POLLING_ENDPOINT,
     BASE_URL,
@@ -23,6 +21,8 @@ from tgtg import (
     TgtgLoginError,
     TgtgPollingError,
 )
+
+from util import log
 
 MAX_POLLING_TRIES = 60
 POLLING_WAIT_TIME = 60

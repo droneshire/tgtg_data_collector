@@ -1,8 +1,8 @@
 import argparse
-import dotenv
 import os
 import sys
 
+import dotenv
 from random_word import RandomWords
 
 from too_good_to_go.manager import TgtgManager
