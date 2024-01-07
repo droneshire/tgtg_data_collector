@@ -61,7 +61,8 @@ class TgtgCollectorBackend:
 
         for search_hash, search in searches.items():
             self._maybe_run_search(search_hash, search)
-            self._maybe_send_email(search_hash, search)
+            urls = self._maybe_upload_files(search_hash, search)
+            self._maybe_send_email(search_hash, search, urls)
             self._maybe_delete_search_files(search_hash, search)
             wait.wait(self.time_between_searches)
 
@@ -111,7 +112,37 @@ class TgtgCollectorBackend:
 
         return message
 
-    def _maybe_send_email(self, uuid: str, search: too_good_to_go_data_types.Search) -> None:
+    def _upload_files(self, uuid: str, search: too_good_to_go_data_types.Search) -> T.List[str]:
+        attachments = self._get_attachments(search["user"], uuid)
+
+        log.print_bold(f"Uploading {len(attachments)} files for {uuid}")
+
+        urls = []
+        for attachment in attachments:
+            try:
+                url = self.firebase_user.upload_search_file(
+                    search["user"], attachment, search["num_results"]
+                )
+                extension = os.path.splitext(attachment)[1]
+                string_url = f"{extension.upper()}: {short_url.shorten_url(url)}"
+                log.print_bright(string_url)
+                urls.append(string_url)
+            except Exception as exception:
+                log.print_warn(f"Failed to upload file: {exception}")
+
+        return urls
+
+    def _maybe_upload_files(
+        self, uuid: str, search: too_good_to_go_data_types.Search
+    ) -> T.List[str]:
+        if not search.get("upload_only", False) and not search.get("email_data", False):
+            return
+
+        return self._upload_files(uuid, search)
+
+    def _maybe_send_email(
+        self, uuid: str, search: too_good_to_go_data_types.Search, urls: T.List[str]
+    ) -> None:
         if self.email is None:
             return
 
@@ -120,27 +151,9 @@ class TgtgCollectorBackend:
 
         log.print_ok(f"Sending email to {search['user']}")
 
-        did_send_email = True
-        attachments = self._get_attachments(search["user"], uuid)
-
-        if not attachments:
+        if not urls:
             log.print_warn("No attachments! Not sending email")
             return
-
-        urls = []
-        for attachment in attachments:
-            try:
-                url = self.firebase_user.get_upload_file_url(
-                    search["user"], attachment, search["num_results"]
-                )
-            except Exception as exception:  # pylint: disable=broad-except
-                log.print_warn(f"Failed to get upload url: {exception}")
-                url = None
-            if url:
-                extension = os.path.splitext(attachment)[1]
-                string_url = f"{extension.upper()}: {short_url.shorten_url(url)}"
-                log.print_bright(string_url)
-                urls.append(string_url)
 
         message = self._format_email(search, urls)
 

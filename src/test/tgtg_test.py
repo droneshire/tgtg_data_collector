@@ -61,6 +61,7 @@ class TgtgTest(unittest.TestCase):
                 "last_search_time": 0,
                 "last_download_time": 0,
                 "email_data": False,
+                "upload_only": False,
                 "erase_data": False,
                 "num_results": 0,
                 "delete_data_on_download": False,

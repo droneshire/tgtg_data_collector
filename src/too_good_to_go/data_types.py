@@ -17,6 +17,7 @@ class Search(TypedDict):
     last_search_time: float
     last_download_time: float
     email_data: bool
+    upload_only: bool
     erase_data: bool
     num_results: int
     delete_data_on_download: bool

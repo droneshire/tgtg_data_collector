@@ -340,7 +340,10 @@ class FirebaseUser:
 
     def update_search_email(self, user: str, search_name: str) -> None:
         self._update_search_fields(
-            user, search_name, ["sendEmail", "lastDownloadTime"], [False, time.time()]
+            user,
+            search_name,
+            ["sendEmail", "lastDownloadTime", "uploadOnly"],
+            [False, time.time(), False],
         )
 
     def _get_search_item(self, search_name: str) -> T.Optional[firebase_data_types.Search]:
@@ -432,6 +435,7 @@ class FirebaseUser:
                         last_search_time=item.get("lastSearchTime", 0),
                         last_download_time=item.get("lastDownloadTime", 0),
                         email_data=item.get("sendEmail", False),
+                        upload_only=item.get("uploadOnly", False),
                         erase_data=item.get("eraseData", False),
                         num_results=item.get("numResults", 0),
                         delete_data_on_download=delete_data_on_download,
