@@ -3,7 +3,6 @@ import typing as T
 
 import censusgeocode
 from census import Census
-from us import states
 
 from constants import DEFAULT_CENSUS_FIELDS_JSON_FILE
 from util import dict_util, log
@@ -43,9 +42,8 @@ class USCensusAPI:
     def get_census_data(self, field: str, address: str):
         try:
             result = censusgeocode.onelineaddress(address)
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except
             log.print_warn(f"Could not find address: {address}")
-
             return None
 
         if result is None:
@@ -72,9 +70,9 @@ class USCensusAPI:
             result = self.census.acs5.state_county_blockgroup(
                 field, state, county, tract=tract, blockgroup=block_group
             )
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as exception:  # pylint: disable=broad-except
             log.print_warn(f"Could not find census data for address: {address}")
-            log.print_warn(e)
+            log.print_warn(exception)
             return None
 
         if not result:

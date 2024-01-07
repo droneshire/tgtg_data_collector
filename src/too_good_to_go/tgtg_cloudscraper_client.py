@@ -74,12 +74,11 @@ class TgtgCloudscraperClient(TgtgClient):
 
     @staticmethod
     def _get_driver(chrome_paths: T.Dict[str, str]) -> uc.Chrome:
-        log.print_bold(f"Creating Chrome Driver...")
+        log.print_bold("Creating Chrome Driver...")
         options = Options()
         options.add_argument("--no-first-run --no-service-autorun --password-store=basic")
         options.add_argument("--no-sandbox")
         options.add_argument("--window-size=960,540")
-        options.headless = False
         options.binary_location = chrome_paths["browser"]
 
         driver = uc.Chrome(
@@ -89,7 +88,7 @@ class TgtgCloudscraperClient(TgtgClient):
         driver.set_page_load_timeout(120)
         driver.implicitly_wait(120)
 
-        log.print_ok_arrow(f"Successfully created chrome driver")
+        log.print_ok_arrow("Successfully created chrome driver")
         return driver
 
     def reset_session(self, proxies: T.Dict[str, str]) -> None:
@@ -146,7 +145,7 @@ class TgtgCloudscraperClient(TgtgClient):
         country_id="GB",
         newsletter_opt_in=False,
         push_notification_opt_in=True,
-    ):
+    ) -> T.Optional["TgtgClient"]:
         response = self.session.post(
             self._get_url(SIGNUP_BY_EMAIL_ENDPOINT),
             headers=self._headers,
@@ -167,7 +166,8 @@ class TgtgCloudscraperClient(TgtgClient):
             self.last_time_token_refreshed = datetime.datetime.now()
             self.user_id = response.json()["login_response"]["startup_data"]["user"]["user_id"]
             return self
-        elif response.status_code == HTTPStatus.FORBIDDEN:
+
+        if response.status_code == HTTPStatus.FORBIDDEN:
             if self.web_driver is None:
                 raise TgtgAPIError(response.status_code, response.content)
 
@@ -183,3 +183,5 @@ class TgtgCloudscraperClient(TgtgClient):
                 print(cookie)
         else:
             raise TgtgAPIError(response.status_code, response.content)
+
+        return None

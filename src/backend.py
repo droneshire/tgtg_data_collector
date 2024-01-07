@@ -42,7 +42,7 @@ class TgtgCollectorBackend:
         self.firebase_user = firebase_user
         self.census_api = census_api
         self.google_places_api = google_places_api
-        self.firebase_user.send_email_callback = self._maybe_send_email
+        self.firebase_user.send_email_callback = self._maybe_send_email_or_upload
         self.tgtg_data_dir = tgtg_data_dir
         self.mode = mode
         self.verbose = verbose
@@ -61,8 +61,7 @@ class TgtgCollectorBackend:
 
         for search_hash, search in searches.items():
             self._maybe_run_search(search_hash, search)
-            urls = self._maybe_upload_files(search_hash, search)
-            self._maybe_send_email(search_hash, search, urls)
+            self._maybe_send_email_or_upload(search_hash, search)
             self._maybe_delete_search_files(search_hash, search)
             wait.wait(self.time_between_searches)
 
@@ -120,29 +119,26 @@ class TgtgCollectorBackend:
         urls = []
         for attachment in attachments:
             try:
-                url = self.firebase_user.upload_search_file(
+                url = self.firebase_user.get_upload_file_url(
                     search["user"], attachment, search["num_results"]
                 )
                 extension = os.path.splitext(attachment)[1]
                 string_url = f"{extension.upper()}: {short_url.shorten_url(url)}"
                 log.print_bright(string_url)
                 urls.append(string_url)
-            except Exception as exception:
+            except Exception as exception:  # pylint: disable=broad-except
                 log.print_warn(f"Failed to upload file: {exception}")
 
         return urls
 
-    def _maybe_upload_files(
+    def _maybe_send_email_or_upload(
         self, uuid: str, search: too_good_to_go_data_types.Search
-    ) -> T.List[str]:
+    ) -> None:
         if not search.get("upload_only", False) and not search.get("email_data", False):
             return
 
-        return self._upload_files(uuid, search)
+        urls = self._upload_files(uuid, search)
 
-    def _maybe_send_email(
-        self, uuid: str, search: too_good_to_go_data_types.Search, urls: T.List[str]
-    ) -> None:
         if self.email is None:
             return
 
