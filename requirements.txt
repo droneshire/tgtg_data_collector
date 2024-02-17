@@ -150,6 +150,7 @@ tornado==6.4
 traitlets==5.14.1
 trio==0.24.0
 trio-websocket==0.11.1
+types-click-spinner==0.1.13.20240106
 types-colorama==0.4.15.20240205
 types-decorator==5.1.8.20240106
 types-docutils==0.20.0.20240201
