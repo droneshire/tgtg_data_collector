@@ -1,6 +1,56 @@
 import math
 import typing as T
 
+from geopy.geocoders import Nominatim
+
+
+def extract_city(address: str) -> T.Optional[str]:
+    """
+    Given an address, extract the city from it.
+    The address is expected to be a comma-separated string.
+    Example:
+        1340, Saint Nicholas Avenue, Washington Heights, Manhattan Community Board 12,
+        Manhattan, City of New York, New York County, New York, 10033, United States
+    """
+    parts = address.split(",")
+    city = None
+    zip_code_index: T.Optional[int] = None
+
+    print(address)
+    for i, part in enumerate(parts):
+        part = part.strip()
+        if "City of " in part:
+            city = part[len("City of ") :].strip()
+            break
+        if part.isnumeric() and len(part) == 5 and i > 1:
+            zip_code_index = i
+
+    if not city and zip_code_index:
+        # If none of the recognizable keywords are found,
+        # assume city is 3 parts before the zip code
+        city = parts[zip_code_index - 3].strip() if zip_code_index - 3 >= 0 else None
+
+        if "County" in city:
+            return None
+
+        if any(char.isdigit() for char in city):
+            return None
+
+    return city
+
+
+def get_city_center_coordinates(city_name: str) -> T.Optional[T.Tuple[float, float]]:
+    # Initialize the Nominatim geocoder
+    geolocator = Nominatim(user_agent="tgtg")
+
+    # Use the geocoder to geocode the city name
+    location = geolocator.geocode(city_name)
+
+    if not location:
+        return None
+
+    return (location.latitude, location.longitude)
+
 
 def meters_to_degrees_latitude(meters: float) -> float:
     """Convert miles to degrees latitude."""
@@ -73,7 +123,6 @@ def get_grid_coordinates(
 
     grid = []
 
-    print(f"lat_steps: {lat_steps}, lon_steps: {lon_steps}")
     # Subtract 1 from lat_steps and lon_steps to avoid going over the radius
     # since we are adding half the step size to the center
     for i in range(lat_steps - 1):

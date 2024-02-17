@@ -12,6 +12,7 @@ import typing as T
 
 import requests
 
+from demographics.util import get_viewport
 from util import log
 
 
@@ -22,6 +23,9 @@ class GooglePlacesAPI:
         "X-Goog-FieldMask": "",
     }
     DEFAULT_FIELDS = "places.formattedAddress,places.displayName"
+    MIN_VIEWPOINT_WIDTH_METERS = 100.0
+    MAX_VIEWPOINT_WIDTH_METERS = 50000.0
+    VIEWPOINT_WIDTH_STEP_METERS = 50.0
 
     def __init__(self, api_key: str, verbose: bool = False) -> None:
         self.api_key = api_key
@@ -94,3 +98,27 @@ class GooglePlacesAPI:
         if self.verbose:
             log.print_normal(f"Data: {json.dumps(json_data, indent=2)}")
         return self.text_search(query=query, fields=fields, data=json_data)
+
+    def find_maximum_viewpoint_width(
+        self, latitude: float, longitude: float, query: str, fields: T.Optional[T.List[str]] = None
+    ) -> float:
+        viewpoint_width_meters = self.MIN_VIEWPOINT_WIDTH_METERS
+
+        while viewpoint_width_meters < self.MAX_VIEWPOINT_WIDTH_METERS:
+            if self.verbose:
+                log.print_normal(
+                    f"Searching for {query} with viewpoint width {viewpoint_width_meters} meters"
+                )
+            rect_viewpoint = get_viewport(latitude, longitude, viewpoint_width_meters)
+            data = {"locationRestriction": {"rectangle": rect_viewpoint}}
+            results = self.text_search(query, fields, data)
+            if results and results.get("places") and len(results["places"]) >= 20:
+                if self.verbose:
+                    log.print_ok(
+                        f"Found {len(results['places'])} results "
+                        f"with viewpoint width {viewpoint_width_meters} meters"
+                    )
+                return viewpoint_width_meters - self.VIEWPOINT_WIDTH_STEP_METERS
+            viewpoint_width_meters += self.VIEWPOINT_WIDTH_STEP_METERS
+
+        return viewpoint_width_meters
