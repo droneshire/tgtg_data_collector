@@ -1,8 +1,6 @@
 import math
 import typing as T
 
-import plotly.express as px
-
 
 def meters_to_degrees_latitude(meters: float) -> float:
     """Convert miles to degrees latitude."""
