@@ -1,6 +1,7 @@
 """
 Utility script that helps write transactions to a spreadsheet
 """
+
 import csv
 import json
 import os

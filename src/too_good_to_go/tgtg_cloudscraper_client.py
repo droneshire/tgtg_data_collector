@@ -1,6 +1,7 @@
 """
 TgtgClient implementation using cloudscraper for the request session.
 """
+
 import datetime
 import json
 import sys

@@ -1,8 +1,8 @@
 import time
 
-from yaspin import yaspin
+from click_spinner import spinner
 
 
-@yaspin(text="Waiting...")
 def wait(wait_time) -> None:
-    time.sleep(wait_time)
+    with spinner():
+        time.sleep(wait_time)

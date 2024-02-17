@@ -1,6 +1,5 @@
 [tool.black]
 line-length = 100
-max-line-length = 100
 target-version = ['py38']
 include = '\.pyi?$'
 # 'extend-exclude' excludes files or directories in addition to the defaults
