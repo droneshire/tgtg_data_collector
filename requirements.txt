@@ -146,6 +146,7 @@ tenacity==8.2.3
 terminado==0.18.0
 tgtg==0.17.0
 tinycss2==1.2.1
+tokenize-rt==5.2.0
 tomlkit==0.12.3
 tornado==6.4
 traitlets==5.14.1

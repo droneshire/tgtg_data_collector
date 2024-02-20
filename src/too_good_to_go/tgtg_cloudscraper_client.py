@@ -10,7 +10,6 @@ import typing as T
 from http import HTTPStatus
 
 import cloudscraper
-
 import undetected_chromedriver as uc
 from selenium.webdriver.chrome.options import Options
 from tgtg import (
