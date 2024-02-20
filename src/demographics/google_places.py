@@ -24,7 +24,7 @@ class GooglePlacesAPI:
     }
     DEFAULT_FIELDS = "places.formattedAddress,places.displayName"
     MIN_VIEWPOINT_WIDTH_METERS = 100.0
-    MAX_VIEWPOINT_WIDTH_METERS = 50000.0
+    MAX_VIEWPOINT_WIDTH_METERS = 700.0
     VIEWPOINT_WIDTH_STEP_METERS = 50.0
 
     def __init__(self, api_key: str, verbose: bool = False) -> None:
