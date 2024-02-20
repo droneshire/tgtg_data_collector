@@ -22,6 +22,8 @@ click-spinner==0.1.10
 cloudscraper==1.2.71
 comm==0.2.1
 cryptography==42.0.3
+cssselect==1.2.0
+cssutils==2.9.0
 debugpy==1.8.1
 decorator==5.1.1
 deepdiff==6.7.1
@@ -51,6 +53,7 @@ httpcore==1.0.3
 httplib2==0.22.0
 httpx==0.26.0
 idna==3.6
+iniconfig==2.0.0
 ipykernel==6.29.2
 ipython==8.21.0
 isoduration==20.11.0
@@ -92,6 +95,8 @@ pathspec==0.12.1
 pexpect==4.9.0
 platformdirs==4.2.0
 plotly==5.19.0
+pluggy==1.4.0
+premailer==3.10.0
 prometheus_client==0.20.0
 prompt-toolkit==3.0.43
 proto-plus==1.23.0
@@ -106,12 +111,15 @@ Pygments==2.17.2
 PyJWT==2.8.0
 pylint==3.0.3
 pyparsing==3.1.1
+pyshorteners==1.0.1
+pytest==8.0.1
 python-dateutil==2.8.2
 python-dotenv==1.0.1
 python-json-logger==2.0.7
 pytz==2024.1
 PyYAML==6.0.1
 pyzmq==25.1.2
+Random-Word==1.0.11
 referencing==0.33.0
 requests==2.31.0
 requests-toolbelt==0.10.1
@@ -140,3 +148,4 @@ wcwidth==0.2.13
 webcolors==1.13
 webencodings==0.5.1
 websocket-client==1.7.0
+yagmail==0.15.293
