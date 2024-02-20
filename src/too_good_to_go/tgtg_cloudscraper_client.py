@@ -11,8 +11,8 @@ from http import HTTPStatus
 
 import cloudscraper
 
-# import undetected_chromedriver as uc
-# from selenium.webdriver.chrome.options import Options
+import undetected_chromedriver as uc
+from selenium.webdriver.chrome.options import Options
 from tgtg import (
     AUTH_POLLING_ENDPOINT,
     BASE_URL,
@@ -67,31 +67,31 @@ class TgtgCloudscraperClient(TgtgClient):
 
         self.captcha_timeout = 10.0
 
-        # if chrome_paths:
-        #     self.web_driver = self._get_driver(chrome_paths=chrome_paths)
-        # else:
-        #     self.web_driver = None
+        if chrome_paths:
+            self.web_driver = self._get_driver(chrome_paths=chrome_paths)
+        else:
+            self.web_driver = None
         self.session = cloudscraper.session()
         self.session.headers = super()._headers
 
-    # @staticmethod
-    # def _get_driver(chrome_paths: T.Dict[str, str]) -> uc.Chrome:
-    #     log.print_bold("Creating Chrome Driver...")
-    #     options = Options()
-    #     options.add_argument("--no-first-run --no-service-autorun --password-store=basic")
-    #     options.add_argument("--no-sandbox")
-    #     options.add_argument("--window-size=960,540")
-    #     options.binary_location = chrome_paths["browser"]
+    @staticmethod
+    def _get_driver(chrome_paths: T.Dict[str, str]) -> uc.Chrome:
+        log.print_bold("Creating Chrome Driver...")
+        options = Options()
+        options.add_argument("--no-first-run --no-service-autorun --password-store=basic")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--window-size=960,540")
+        options.binary_location = chrome_paths["browser"]
 
-    #     driver = uc.Chrome(
-    #         options=options, executable_path=chrome_paths["driver"], delay=10, headless=False
-    #     )
+        driver = uc.Chrome(
+            options=options, executable_path=chrome_paths["driver"], delay=10, headless=False
+        )
 
-    #     driver.set_page_load_timeout(120)
-    #     driver.implicitly_wait(120)
+        driver.set_page_load_timeout(120)
+        driver.implicitly_wait(120)
 
-    #     log.print_ok_arrow("Successfully created chrome driver")
-    #     return driver
+        log.print_ok_arrow("Successfully created chrome driver")
+        return driver
 
     def reset_session(self, proxies: T.Dict[str, str]) -> None:
         self.proxies = proxies
@@ -169,21 +169,21 @@ class TgtgCloudscraperClient(TgtgClient):
             self.user_id = response.json()["login_response"]["startup_data"]["user"]["user_id"]
             return self
 
-        # if response.status_code == HTTPStatus.FORBIDDEN:
-        # if self.web_driver is None:
-        #     raise TgtgAPIError(response.status_code, response.content)
+        if response.status_code == HTTPStatus.FORBIDDEN:
+            if self.web_driver is None:
+                raise TgtgAPIError(response.status_code, response.content)
 
-        # timeout = self.captcha_timeout
-        # response_bytes = response.content.decode("utf-8")
-        # response_json = json.loads(response_bytes)
-        # auth_url = response_json["url"]
-        # self.web_driver.get(auth_url)
-        # time.sleep(timeout)
+            timeout = self.captcha_timeout
+            response_bytes = response.content.decode("utf-8")
+            response_json = json.loads(response_bytes)
+            auth_url = response_json["url"]
+            self.web_driver.get(auth_url)
+            time.sleep(timeout)
 
-        # cookies = self.web_driver.get_cookies()
-        # for cookie in cookies:
-        #     print(cookie)
-        # else:
-        #     raise TgtgAPIError(response.status_code, response.content)
+            cookies = self.web_driver.get_cookies()
+            for cookie in cookies:
+                print(cookie)
+        else:
+            raise TgtgAPIError(response.status_code, response.content)
 
         return None
