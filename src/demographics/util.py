@@ -30,6 +30,9 @@ def extract_city(address: str) -> T.Optional[str]:
         # assume city is 3 parts before the zip code
         city = parts[zip_code_index - 3].strip() if zip_code_index - 3 >= 0 else None
 
+        if city is None:
+            return None
+
         if "County" in city:
             return None
 
