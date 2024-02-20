@@ -1,4 +1,3 @@
-import time
 import unittest
 
 from demographics import util
@@ -57,7 +56,7 @@ class DemographicsTest(unittest.TestCase):
         for city, expected in test_cases:
             try:
                 lat, lon = util.get_city_center_coordinates(city)
-            except Exception as exc:
+            except Exception as exc:  # pylint: disable=broad-except
                 skip_check = True
                 print(f"\nFailed to get coordinates for {city}: {exc}")
 
