@@ -22,7 +22,7 @@ def get_firebase_host_url(firebase_credentials_file: str) -> str:
     return url
 
 
-def run_loop(args: argparse.Namespace) -> None:
+def run_loop(args: argparse.Namespace, bot_pidfile: str) -> None:
     file_util.make_sure_path_exists(args.tgtg_data_dir)
 
     sender_email = email.Email(
@@ -70,6 +70,12 @@ def run_loop(args: argparse.Namespace) -> None:
 
     backend.init()
 
+    # run through first iteration, then create the pidfile
+    backend.run()
+
+    with open(bot_pidfile, "w", encoding="utf-8") as outfile:
+        outfile.write(str(os.getpid()))
+
     while True:
         backend.run()
         wait.wait(args.time_between_loop)
@@ -84,11 +90,8 @@ def main() -> None:
 
     bot_pidfile = os.environ.get("BOT_PIDFILE", "tgtg_worker.pid")
 
-    with open(bot_pidfile, "w", encoding="utf-8") as outfile:
-        outfile.write(str(os.getpid()))
-
     try:
-        run_loop(args)
+        run_loop(args, bot_pidfile)
     except KeyboardInterrupt:
         os.remove(bot_pidfile)
 

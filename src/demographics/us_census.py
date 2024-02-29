@@ -1,9 +1,9 @@
 import json
 import os
-import requests
 import typing as T
 
 import censusgeocode
+import requests
 from census import Census
 
 from constants import DEFAULT_CENSUS_FIELDS_JSON_FILE
