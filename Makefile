@@ -35,16 +35,6 @@ lint: check_format mypy pylint
 
 test:
 	$(RUN_PY) unittest discover -s test -p *_test.py -v
-# Uncomment and tab over to run individual tests
-# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_uuid
-# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_finding_interval
-# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_conversion_timezone
-# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_get_intervals_from_start_time
-# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_timezone_changes
-# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_time_within_divisors_of_24
-# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_time_all_starts_within_interval
-# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_time_all_starts_outside_interval
-# $(RUN_PY) unittest test.tgtg_test.TgtgTest.test_parsing_costs_from_api_data
 
 run_worker_dev:
 	$(RUN_PY) executables.tgtg_worker --mode dev --time-between-loop 15 --verbose --use-proxies
@@ -60,7 +50,26 @@ reset_monitor:
 
 test_run:
 	$(RUN_PY) executables.test_uploads
+
 clean:
 	rm -rf *.pickle
+	rm -rf ./venv
+	rm -rf ./logs
+	rm -rf .mypy_cache
 
-.PHONY: init install format check_format mypy pylint autopep8 isort lint test run_worker create_account clean
+.PHONY: init
+.PHONY: install
+.PHONY: format
+.PHONY: check_format
+.PHONY: mypy
+.PHONY: pylint
+.PHONY: autopep8
+.PHONY: isort
+.PHONY: lint
+.PHONY: test
+.PHONY: run_worker_dev
+.PHONY: run_worker_prod
+.PHONY: create_account
+.PHONY: reset_monitor
+.PHONY: test_run
+.PHONY: clean
