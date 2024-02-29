@@ -23,7 +23,7 @@ class USCensusAPI:
             self.warm_cache()
 
     def warm_cache(self):
-        if not self.cache_json_file:
+        if not self.cache_json_file or not os.path.exists(self.cache_json_file):
             log.print_warn("No cache file specified")
             self.census_fields_cache = self.census.acs5.fields()
 

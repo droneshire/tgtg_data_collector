@@ -41,13 +41,13 @@ def is_process_killed() -> bool:
                 return True
             return False
     except:  # pylint: disable=bare-except
-        log.print_fail("No process running.")
-        return True
+        log.print_fail("No process is/was running.")
+        return False
 
 
 def reset_server() -> None:
     """Reset the server by killing all bot processes and restarting them."""
-    log.print_fail("Resetting server...")
+    log.print_bright("Resetting server...")
     try_to_kill_process()
     bot_start_command = os.environ.get("BOT_START_COMMAND", "")
 
