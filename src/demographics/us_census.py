@@ -1,5 +1,6 @@
 import json
 import os
+import requests
 import typing as T
 
 import censusgeocode
@@ -26,7 +27,11 @@ class USCensusAPI:
     def warm_cache(self):
         if not self.cache_json_file or not os.path.exists(self.cache_json_file):
             log.print_warn("No cache file specified")
-            self.census_fields_cache = self.census.acs5.fields()
+            try:
+                self.census_fields_cache = self.census.acs5.fields()
+            except requests.exceptions.JSONDecodeError as exception:
+                log.print_warn(f"Could not load census fields: {exception}")
+                return
 
             with open(self.cache_json_file, "w", encoding="utf-8") as outfile:
                 json.dump(self.census_fields_cache, outfile, indent=4)
