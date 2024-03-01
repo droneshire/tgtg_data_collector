@@ -29,7 +29,7 @@ def main() -> None:
         outfile.write("test,test,test\n")
 
     for attachment in [json_path, csv_path]:
-        url = firebase_user.get_upload_file_url(
+        url = firebase_user.upload_file_and_get_url(
             user, attachment, random.randint(1, 100), verbose=True
         )
         log.print_ok(f"Download url:\n\n{url}\n\n")

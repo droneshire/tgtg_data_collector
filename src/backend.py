@@ -51,8 +51,17 @@ class TgtgCollectorBackend:
 
         self.last_query_firebase_time: T.Optional[float] = None
 
-    def _get_file_basename(self, uuid: str) -> str:
-        return f"tgtg_search_{uuid}"
+    def _get_file_basename(self, search: too_good_to_go_data_types.Search, uuid: str) -> str:
+        name_construct = [
+            "tgtg_search",
+            search["search_name"],
+            str(search["region"]["latitude"]),
+            str(search["region"]["longitude"]),
+            str(search["region"]["radius"]),
+            uuid,
+        ]
+
+        return "_".join(name_construct)
 
     def _check_and_run_search_and_email(self) -> None:
         searches: T.Dict[str, too_good_to_go_data_types.Search] = self.firebase_user.get_searches()
@@ -71,28 +80,28 @@ class TgtgCollectorBackend:
         )
         self._maybe_run_search_context_jobs(search_contexts)
 
-    def _get_tgtg_data_file(self, user: str, uuid: str) -> str:
+    def _get_tgtg_data_file(self, user: str, filename: str) -> str:
         user_dir = os.path.join(self.tgtg_data_dir, user)
         file_util.make_sure_path_exists(user_dir, ignore_extension=True)
 
-        tgtg_data_json_file = os.path.join(user_dir, f"{self._get_file_basename(uuid)}.json")
+        tgtg_data_json_file = os.path.join(user_dir, f"{filename}.json")
         return tgtg_data_json_file
 
-    def _get_tgtg_csv_file(self, user: str, uuid: str) -> str:
+    def _get_tgtg_csv_file(self, user: str, filename: str) -> str:
         user_dir = os.path.join(self.tgtg_data_dir, user)
         file_util.make_sure_path_exists(user_dir, ignore_extension=True)
 
-        tgtg_data_csv_file = os.path.join(user_dir, f"{self._get_file_basename(uuid)}.csv")
+        tgtg_data_csv_file = os.path.join(user_dir, f"{filename}.csv")
         return tgtg_data_csv_file
 
-    def _get_attachments(self, user: str, uuid: str) -> T.List[str]:
+    def _get_attachments(self, user: str, filename: str) -> T.List[str]:
         attachments = []
 
-        tgtg_data_json_file = self._get_tgtg_data_file(user, uuid)
+        tgtg_data_json_file = self._get_tgtg_data_file(user, filename)
         if os.path.isfile(tgtg_data_json_file):
             attachments.append(tgtg_data_json_file)
 
-        tgtg_data_csv_file = self._get_tgtg_csv_file(user, uuid)
+        tgtg_data_csv_file = self._get_tgtg_csv_file(user, filename)
         if os.path.isfile(tgtg_data_csv_file):
             attachments.append(tgtg_data_csv_file)
 
@@ -118,14 +127,14 @@ class TgtgCollectorBackend:
         return message
 
     def _upload_files(self, uuid: str, search: too_good_to_go_data_types.Search) -> T.List[str]:
-        attachments = self._get_attachments(search["user"], uuid)
+        attachments = self._get_attachments(search["user"], self._get_file_basename(search, uuid))
 
         log.print_bold(f"Uploading {len(attachments)} files for {uuid}")
 
         urls = []
         for attachment in attachments:
             try:
-                url = self.firebase_user.get_upload_file_url(
+                url = self.firebase_user.upload_file_and_get_url(
                     search["user"], attachment, search["num_results"]
                 )
                 extension = os.path.splitext(attachment)[1]
@@ -187,15 +196,14 @@ class TgtgCollectorBackend:
         if not search.get("erase_data", False):
             return
 
-        attachments = self._get_attachments(search["user"], uuid)
+        blob_name = self._get_file_basename(search, uuid)
+        attachments = self._get_attachments(search["user"], blob_name)
 
         log.print_bold(f"Deleting {len(attachments)} files for {uuid}")
 
         for attachment in attachments:
             try:
-                self.firebase_user.delete_search_uploads(
-                    search["user"], self._get_file_basename(uuid)
-                )
+                self.firebase_user.delete_search_uploads(search["user"], blob_name)
             except Exception as exception:  # pylint: disable=broad-except
                 log.print_warn(f"Failed to delete uploads: {exception}")
 
@@ -256,7 +264,9 @@ class TgtgCollectorBackend:
                 tgtg_data_json_file = self._get_tgtg_data_file(search["user"], uuid)
                 self.tgtg_manager.write_data_to_json(results, tgtg_data_json_file, timezone)
 
-            tgtg_data_csv_file = self._get_tgtg_csv_file(search["user"], uuid)
+            tgtg_data_csv_file = self._get_tgtg_csv_file(
+                search["user"], self._get_file_basename(search, uuid)
+            )
             self.tgtg_manager.write_data_to_csv(results, tgtg_data_csv_file, timezone)
 
         # TODO(ross): this is pretty inefficient, we potentially update the firebase
@@ -271,10 +281,14 @@ class TgtgCollectorBackend:
     def _maybe_run_search_context_jobs(
         self, search_contexts: T.List[too_good_to_go_data_types.SearchContext]
     ) -> None:
-        log.print_bright(f"Found {len(search_contexts)} search contexts")
-
         for search_context in search_contexts:
-            log.print_bright(f"{json.dumps(search_context, indent=4)}")
+            if not search_context["trigger_search"]:
+                continue
+
+            log.print_bright(f"Found {search_context['city']} search contexts trigger")
+
+            log.print_normal(f"{json.dumps(search_context, indent=4)}")
+
             self.firebase_user.clear_search_context(search_context["user"], search_context["city"])
 
     def _check_to_firebase(self) -> None:

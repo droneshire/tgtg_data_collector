@@ -182,8 +182,8 @@ class FirebaseUser:
     def send_email_callback(self, callback: SendEmailCallbackType) -> None:
         self._send_email_callback = callback
 
-    def delete_search_uploads(self, user: str, uuid: str) -> None:
-        storage_path = self._get_base_blob_storage_path(user, uuid)
+    def delete_search_uploads(self, user: str, identifier: str) -> None:
+        storage_path = self._get_base_blob_storage_path(user, identifier)
         for blob in self.bucket.list_blobs(prefix=storage_path):
             blob.reload()
             time_created = blob.time_created
@@ -199,16 +199,17 @@ class FirebaseUser:
         for blob in self.bucket.list_blobs(prefix=f"{user}/"):
             blob.delete()
 
-    def _get_base_blob_storage_path(self, user: str, uuid: str) -> str:
-        return f"{user}/{uuid}"
+    def _get_base_blob_storage_path(self, user: str, identifier: str) -> str:
+        return f"{user}/{identifier}"
 
     def _get_blob_storage_path(self, user: str, file_path: str, num_results: int) -> str:
         file_name = os.path.basename(file_path)
-        uuid, extension = os.path.splitext(file_name)
-        blob_base_path = self._get_base_blob_storage_path(user, uuid)
-        return f"{blob_base_path}/{num_results}{extension}"
+        file_name_stripped, extension = os.path.splitext(file_name)
+        blob_base_path = self._get_base_blob_storage_path(user, file_name_stripped)
+        date_string = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        return f"{blob_base_path}/{num_results}__{date_string}{extension}"
 
-    def get_upload_file_url(
+    def upload_file_and_get_url(
         self, user: str, file_path: str, num_results: int, verbose: bool = False
     ) -> str:
         mimetype = "text/csv" if file_path.endswith(".csv") else "application/json"
