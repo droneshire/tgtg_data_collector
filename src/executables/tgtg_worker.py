@@ -6,10 +6,10 @@ import dotenv
 
 from backend import TgtgCollectorBackend
 from constants import PROJECT_NAME
-from search_context.google_places import GooglePlacesAPI
-from search_context.us_census import USCensusAPI
 from firebase.user import FirebaseUser
 from parse_args import parse_args
+from search_context.google_places import GooglePlacesAPI
+from search_context.us_census import USCensusAPI
 from too_good_to_go.manager import TgtgManager
 from util import email, file_util, log, wait
 

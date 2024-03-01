@@ -1,7 +1,13 @@
 import math
 import typing as T
 
+import pandas as pd
 from geopy.geocoders import Nominatim
+
+from util import log
+
+METERS_PER_MILE = 1609.34
+METERS_PER_KILOMETER = 1000.0
 
 
 def extract_city(address: str) -> T.Optional[str]:
@@ -136,3 +142,74 @@ def get_grid_coordinates(
 
     return grid
 
+
+def calculate_cost_from_results(
+    search_block_width: float,
+    cost_per_square: float,
+    radius_meters: float,
+    print_results: bool = True,
+) -> T.Tuple[int, float]:
+    search_block_area = (
+        search_block_width * search_block_width
+    )  # Area of one square in square meters
+
+    area_width = radius_meters * 2
+
+    total_area_meters = area_width * area_width
+
+    # Calculate how many 50 meter squares fit into the area
+    number_of_squares = total_area_meters / search_block_area
+
+    total_cost = number_of_squares * cost_per_square
+
+    if print_results:
+        print(f"Total searches: {number_of_squares:.0f}")
+        print(f"Total cost: ${total_cost:.2f}")
+        print(f"Searched area: {search_block_area:.2f} m^2")
+        print(f"Total area: {total_area_meters:.2f} m^2")
+
+    return int(number_of_squares), total_cost
+
+
+def get_search_grid_details(
+    city: str,
+    max_grid_resolution_width_meters: float,
+    radius_meters: float,
+    max_cost_per_city: float,
+    cost_per_search: float,
+) -> T.Tuple[pd.DataFrame, T.Tuple[float, float], int, float]:
+    city_center_coordinates = get_city_center_coordinates(city)
+    assert city_center_coordinates, f"Location not found for {city}"
+
+    log.print_bright(f"City center: {city_center_coordinates}")
+
+    center_lat, center_lon = city_center_coordinates
+
+    number_of_squares = 0
+    total_cost = max_cost_per_city * 10.0
+    grid = []
+
+    # Now optimize for cost by reducing the radius until it is within budget
+    log.print_normal("Optimizing for cost")
+    while total_cost > max_cost_per_city and radius_meters > METERS_PER_KILOMETER:
+        number_of_squares, total_cost = calculate_cost_from_results(
+            max_grid_resolution_width_meters, cost_per_search, radius_meters, print_results=False
+        )
+        log.print_normal(total_cost)
+        radius_meters -= METERS_PER_KILOMETER
+
+    grid = get_grid_coordinates(
+        center_lat=center_lat,
+        center_lon=center_lon,
+        radius_meters=radius_meters,
+        grid_side_meters=max_grid_resolution_width_meters,
+    )
+    radius_miles = radius_meters / METERS_PER_MILE
+
+    grid_df = pd.DataFrame(grid, columns=["latitude", "longitude"])
+
+    log.print_normal(f"Final radius: {radius_miles:.2f} miles")
+    log.print_normal(f"Grid size: {len(grid)}")
+    log.print_normal(f"Grid center: {city_center_coordinates}")
+
+    return (grid_df, city_center_coordinates, number_of_squares, total_cost)

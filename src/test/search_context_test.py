@@ -4,7 +4,6 @@ from search_context import util
 
 
 class SearchContextTest(unittest.TestCase):
-
     def test_get_address_from_string(self):
         address = (
             "Autumn Lane, Seaport, South Boston, Boston, Suffolk County,"

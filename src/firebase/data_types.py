@@ -56,9 +56,21 @@ class Searches(T.TypedDict):
     collectionTimeStart: int
 
 
+class SearchContext(T.TypedDict):
+    city: str
+    cityCenter: T.Dict[str, float]
+    radiusMiles: int
+    totalCost: int
+    numberOfSquares: int
+    gridWidthMeters: int
+    triggerSearch: bool
+    autoUpload: bool
+
+
 class User(T.TypedDict):
     preferences: Preferences
     searches: Searches
+    searchContext: SearchContext
 
 
 NULL_USER = User(
@@ -80,5 +92,18 @@ NULL_USER = User(
         items={},
         hoursBetweenCollection=min(INTERVALS),
         collectionTimeStart=6,
+    ),
+    searchContext=SearchContext(
+        city="",
+        cityCenter={
+            "latitude": 0.0,
+            "longitude": 0.0,
+        },
+        radiusMiles=0,
+        totalCost=0,
+        numberOfSquares=0,
+        gridWidthMeters=0,
+        triggerSearch=False,
+        autoUpload=False,
     ),
 )

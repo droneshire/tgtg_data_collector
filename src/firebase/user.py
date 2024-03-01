@@ -62,6 +62,11 @@ class FirebaseUser:
         self._send_email_callback: T.Optional[SendEmailCallbackType] = send_email_callback
 
     def _delete_user(self, name: str) -> None:
+        """
+        Delete a user from the cache. This should be called when a user is removed
+        from the database. This just removes the cache. The cache gets updated
+        periodically to firestore.
+        """
         with self.database_cache_lock:
             if name in self.database_cache:
                 del self.database_cache[name]
@@ -73,6 +78,12 @@ class FirebaseUser:
         old_db_user: firebase_data_types.User,
         db_user: firebase_data_types.User,
     ) -> None:
+        """
+        Upload the database cache to firestore if there are differences between the
+        old and new user. This should be called periodically to ensure that the
+        firestore database is up to date with the cache.
+        App -> Firstore
+        """
         diff = deepdiff.DeepDiff(
             old_db_user,
             db_user,
@@ -95,6 +106,14 @@ class FirebaseUser:
         changed_docs: T.List[DocumentChange],
         read_time: T.Any,
     ) -> None:
+        """
+        Handle a collection snapshot from the firestore database. This is a callback
+        and is asynchronous. We need to be careful to not block the main thread.
+        We just update the cache here and then signal the main thread that we are done
+        for further processing.
+
+        Firestore -> App
+        """
         # pylint: disable=unused-argument
         log.print_warn(f"Received collection snapshot for {len(collection_snapshot)} documents")
 
@@ -129,6 +148,9 @@ class FirebaseUser:
                 self._delete_user(doc_id)
 
         for search_hash, search_item in self.get_searches(verbose=False).items():
+            # We could kick off the search context jobs here as well, but since they
+            # are not time sensitive due to how long they take, we can just wait for
+            # the next iteration of the main loop to do it.
             if search_item.get("email_data", False) and self._send_email_callback is not None:
                 self._send_email_callback(search_hash, search_item)
 
@@ -242,6 +264,11 @@ class FirebaseUser:
         self.callback_done.set()
 
     def check_and_maybe_handle_firebase_db_updates(self) -> None:
+        """
+        Syncronous check for updates from the firebase database. This calls a
+        centralized callback to handle syncronous and asynchronous updates from the
+        database.
+        """
         if self.callback_done.is_set():
             self.callback_done.clear()
             log.print_bright("Handling firebase database updates")
@@ -387,6 +414,46 @@ class FirebaseUser:
         db_user["searches"]["items"][search_name] = search_item
 
         self._maybe_upload_db_cache_to_firestore(user, old_db_user, db_user)
+
+    def clear_search_context(self, user: str, city: str) -> None:
+        with self.database_cache_lock:
+            if user not in self.database_cache:
+                log.print_warn(f"User {user} not in database cache")
+                return
+
+            old_db_user = copy.deepcopy(self.database_cache[user])
+            db_user = copy.deepcopy(self.database_cache[user])
+
+        log.print_bright(f"Clearing search context for {user} in {city}")
+
+        db_user["searchContext"] = firebase_data_types.NULL_USER["searchContext"]
+
+        self._maybe_upload_db_cache_to_firestore(user, old_db_user, db_user)
+
+    def get_search_contexts(self) -> T.List[too_good_to_go_data_types.SearchContext]:
+        search_contexts = []
+        with self.database_cache_lock:
+            for user, info in self.database_cache.items():
+                context = safe_get(dict(info), "searchContext".split("."))
+                if context is None or not context:
+                    continue
+
+                search_context = too_good_to_go_data_types.SearchContext(
+                    user=user,
+                    city=context["city"],
+                    city_center=(
+                        context["cityCenter"]["latitude"],
+                        context["cityCenter"]["longitude"],
+                    ),
+                    radius_miles=context["radiusMiles"],
+                    num_squares=context["numberOfSquares"],
+                    grid_width_meters=context["gridWidthMeters"],
+                    trigger_search=context["triggerSearch"],
+                    send_email=context["autoUpload"],
+                )
+                search_contexts.append(search_context)
+
+        return search_contexts
 
     def get_searches(self, verbose: bool = True) -> T.Dict[str, too_good_to_go_data_types.Search]:
         searches = {}

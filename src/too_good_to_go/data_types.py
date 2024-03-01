@@ -1,4 +1,15 @@
-from typing import List, TypedDict
+from typing import List, Tuple, TypedDict
+
+
+class SearchContext(TypedDict):
+    user: str
+    city: str
+    city_center: Tuple[float, float]
+    radius_miles: int
+    num_squares: int
+    grid_width_meters: float
+    send_email: bool
+    trigger_search: bool
 
 
 class Region(TypedDict):

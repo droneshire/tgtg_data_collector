@@ -6,9 +6,9 @@ import typing as T
 
 import pytz
 
+from firebase.user import FirebaseUser
 from search_context.google_places import GooglePlacesAPI
 from search_context.us_census import USCensusAPI
-from firebase.user import FirebaseUser
 from too_good_to_go import data_types as too_good_to_go_data_types
 from too_good_to_go.manager import TgtgManager
 from too_good_to_go.search_interval import is_time_to_search
@@ -64,6 +64,12 @@ class TgtgCollectorBackend:
             self._maybe_send_email_or_upload(search_hash, search)
             self._maybe_delete_search_files(search_hash, search)
             wait.wait(self.time_between_searches)
+
+    def _check_and_maybe_run_search_context_job(self) -> None:
+        search_contexts: T.List[too_good_to_go_data_types.SearchContext] = (
+            self.firebase_user.get_search_contexts()
+        )
+        self._maybe_run_search_context_jobs(search_contexts)
 
     def _get_tgtg_data_file(self, user: str, uuid: str) -> str:
         user_dir = os.path.join(self.tgtg_data_dir, user)
@@ -250,15 +256,6 @@ class TgtgCollectorBackend:
                 tgtg_data_json_file = self._get_tgtg_data_file(search["user"], uuid)
                 self.tgtg_manager.write_data_to_json(results, tgtg_data_json_file, timezone)
 
-            # for result in results["results"]:
-            #     address = str(result["store"]["store_location"]["address"]["address_line"])
-            #     # TODO(ross): get the data we actually care about once we know it
-            #     # and store it properly
-            #     census_data = self.census_api.get_census_data("B01001_001E", address)
-            #     # google_data = self.google_places_api.search_places(address)
-            #     log.print_normal(f"Census data: {census_data}")
-            #     log.print_normal(f"Google data: {google_data}")
-
             tgtg_data_csv_file = self._get_tgtg_csv_file(search["user"], uuid)
             self.tgtg_manager.write_data_to_csv(results, tgtg_data_csv_file, timezone)
 
@@ -270,6 +267,15 @@ class TgtgCollectorBackend:
         self.firebase_user.update_search_stats(
             search["user"], search["search_name"], time.time(), num_results, uuid
         )
+
+    def _maybe_run_search_context_jobs(
+        self, search_contexts: T.List[too_good_to_go_data_types.SearchContext]
+    ) -> None:
+        log.print_bright(f"Found {len(search_contexts)} search contexts")
+
+        for search_context in search_contexts:
+            log.print_bright(f"{json.dumps(search_context, indent=4)}")
+            self.firebase_user.clear_search_context(search_context["user"], search_context["city"])
 
     def _check_to_firebase(self) -> None:
         self.firebase_user.health_ping()
@@ -305,4 +311,5 @@ class TgtgCollectorBackend:
         self.tgtg_manager.run()
         self._check_from_firebase()
         self._check_and_run_search_and_email()
+        self._check_and_maybe_run_search_context_job()
         self._check_to_firebase()

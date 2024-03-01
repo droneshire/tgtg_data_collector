@@ -9,6 +9,8 @@ import typing as T
 
 from util.file_util import make_sure_path_exists
 
+_ALWAYS_PRINT = False
+
 
 class Colors(enum.Enum):
     HEADER = "\033[95m"
@@ -33,7 +35,7 @@ class MultiHandler(logging.Handler):
     a global lock and it'd be OK to just have a per-thread or per-file lock.
     """
 
-    def __init__(self, dirname, block_list_prefixes: T.Optional[T.List[str]] = None):
+    def __init__(self, dirname: str, block_list_prefixes: T.Optional[T.List[str]] = None):
         super().__init__()
         self.files: T.Dict[str, T.TextIO] = {}
         self.dirname = dirname
@@ -41,7 +43,7 @@ class MultiHandler(logging.Handler):
         if not os.access(dirname, os.W_OK):
             raise OSError(f"Directory {dirname} not writeable")
 
-    def flush(self):
+    def flush(self) -> None:
         self.acquire()
         try:
             for file_descriptor in self.files.values():
@@ -49,30 +51,43 @@ class MultiHandler(logging.Handler):
         finally:
             self.release()
 
-    def _get_or_open(self, key):
+    def _get_or_open(self, key: str) -> T.Optional[T.TextIO]:
         "Get the file pointer for the given key, or else open the file"
         self.acquire()
+        file_descriptor: T.Optional[T.TextIO] = None
         try:
             if key in self.files:
                 return self.files[key]
 
+            file_name = (
+                f"{key}.log".replace("/", "_").replace(" ", "_").replace("(", "").replace(")", "")
+            )
+            file_name = file_name.lower()
             file_descriptor = open(  # pylint: disable=consider-using-with
-                os.path.join(self.dirname, f"{key}.log"), "a", encoding="utf-8"
+                os.path.join(self.dirname, file_name),
+                "a",
+                encoding="utf-8",
             )
             self.files[key] = file_descriptor
             return file_descriptor
         finally:
             self.release()
 
-    def emit(self, record):
+        return file_descriptor
+
+    def emit(self, record: logging.LogRecord) -> None:
         # No lock here; following code for StreamHandler and FileHandler
         try:
             name = record.threadName
+            if name is None:
+                return
             if any(n for n in self.block_list_prefixes if name.startswith(n)):
                 return
             file_descriptor = self._get_or_open(name)
+            if file_descriptor is None:
+                raise ValueError(f"Could not open file for {name}")
             msg = self.format(record)
-            file_descriptor.write(f"{msg.encode('utf-8')}\n")
+            file_descriptor.write(f"{msg}\n")
         except (KeyboardInterrupt, SystemExit):
             raise
         except:  # pylint: disable=bare-except
@@ -94,6 +109,10 @@ def clean_log_dir(log_dir: str) -> None:
             print(f"Failed to delete {file_path}. Reason: {exception_obj}")
 
 
+def is_color_supported() -> bool:
+    return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+
+
 def get_logging_dir(name: str, create_if_not_exist: bool = True) -> str:
     util_dir = os.path.dirname(os.path.realpath(__file__))
     src_dir = os.path.dirname(util_dir)
@@ -104,8 +123,27 @@ def get_logging_dir(name: str, create_if_not_exist: bool = True) -> str:
     return log_dir
 
 
-def is_color_supported() -> bool:
-    return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
+def get_log_dir_name(log_dir: str) -> str:
+    current_log_dir_name = time.strftime("%Y_%m_%d__%H_%M_%S", time.localtime(time.time()))
+    updated_log_dir = os.path.join(log_dir, "logs", current_log_dir_name)
+    make_sure_path_exists(path=updated_log_dir)
+    return updated_log_dir
+
+
+def setup(log_dir: str, log_level: str, main_thread_name: str) -> None:
+    if not os.path.isdir(log_dir):
+        os.mkdir(log_dir)
+
+    new_log_dir = get_log_dir_name(log_dir)
+
+    setup_log(log_level, new_log_dir, main_thread_name)
+
+    logging.getLogger().addHandler(
+        MultiHandler(
+            new_log_dir,
+            ["ThreadPool", "MainThread"],
+        )
+    )
 
 
 def make_formatter_printer(
@@ -117,6 +155,8 @@ def make_formatter_printer(
     logger = logging.getLogger(__name__)
 
     def formatter(message, *args, **kwargs):
+        message = str(message)
+
         if args or kwargs:
             formatted_text = message.format(*args, **kwargs)
         else:
@@ -126,23 +166,41 @@ def make_formatter_printer(
             formatted_text = prefix + "\t" + formatted_text
 
         if is_color_supported():
-            return (
-                str(color + formatted_text + Colors.ENDC.value)
-                .encode("utf-8")
-                .decode(sys.stdout.encoding, errors="ignore")
-            )
-        return formatted_text.encode("utf-8").decode(sys.stdout.encoding, errors="ignore")
+            if sys.stdout.encoding is not None:
+                return (
+                    str(color + formatted_text + Colors.ENDC.value)
+                    .encode("utf-8")
+                    .decode(sys.stdout.encoding, errors="ignore")
+                )
+            return str(color + formatted_text + Colors.ENDC.value)
+
+        if sys.stdout.encoding is not None:
+            return formatted_text.encode("utf-8").decode(sys.stdout.encoding, errors="ignore")
+
+        return formatted_text
 
     def printer(message, *args, **kwargs):
         if log_level == logging.DEBUG:
             logger.debug(message)
+        elif log_level == logging.WARNING:
+            logger.warning(message)
         elif log_level == logging.ERROR:
-            logger.critical(message)
+            logger.error(message)
         elif log_level == logging.INFO:
             logger.info(message)
+        elif log_level == logging.CRITICAL:
+            logger.critical(message)
 
-        print(formatter(message, *args, **kwargs))
+        if _ALWAYS_PRINT:
+            print(formatter(message, *args, **kwargs))
+        elif logging.getLogger().isEnabledFor(log_level):
+            print(formatter(message, *args, **kwargs))
+
         sys.stdout.flush()
+
+        # Flush the logger handlers
+        for handler in logger.handlers:
+            handler.flush()
 
     if return_formatter:
         return formatter
@@ -175,19 +233,14 @@ def tar_logs(log_dir: str, tarname: str, remove_after: bool = False, max_tars: i
         shutil.rmtree(logs_dir)
 
 
-def setup_log(log_level: str, log_dir: str, id_string: str) -> None:
+def setup_log(log_level: str, log_dir: str, id_string: str, always_print: bool = False) -> None:
+    global _ALWAYS_PRINT  # pylint: disable=global-statement
+    _ALWAYS_PRINT = always_print
+
     if log_level == "NONE":
         return
 
-    log_name = (
-        time.strftime("%Y_%m_%d__%H_%M_%S", time.localtime(time.time())) + f"_{id_string}.log"
-    )
-
-    logs_dir = os.path.join(log_dir, "logs")
-
-    make_sure_path_exists(path=logs_dir)
-
-    log_file = os.path.join(logs_dir, log_name)
+    log_file = os.path.join(log_dir, f"{id_string}.log")
 
     logging.basicConfig(
         filename=log_file,
@@ -198,17 +251,26 @@ def setup_log(log_level: str, log_dir: str, id_string: str) -> None:
     )
 
 
-print_ok_blue = make_formatter_printer(Colors.OKBLUE.value)
-print_ok = make_formatter_printer(Colors.OKGREEN.value)
-print_bright = make_formatter_printer(Colors.OKCYAN.value)
-print_warn = make_formatter_printer(Colors.WARNING.value)
-print_fail = make_formatter_printer(Colors.FAIL.value)
-print_bold = make_formatter_printer(Colors.BOLD.value)
-print_normal = make_formatter_printer(Colors.ENDC.value)
-print_normal_arrow = make_formatter_printer(Colors.ENDC.value, prefix=Prefixes.ARROW.value)
-print_ok_arrow = make_formatter_printer(Colors.OKGREEN.value, prefix=Prefixes.ARROW.value)
-print_ok_blue_arrow = make_formatter_printer(Colors.OKBLUE.value, prefix=Prefixes.ARROW.value)
-print_fail_arrow = make_formatter_printer(Colors.FAIL.value, prefix=Prefixes.ARROW.value)
+print_ok_blue = make_formatter_printer(Colors.OKBLUE.value, log_level=logging.INFO)
+print_ok_blue_arrow = make_formatter_printer(
+    Colors.OKBLUE.value, prefix=Prefixes.ARROW.value, log_level=logging.INFO
+)
+print_ok = make_formatter_printer(Colors.OKGREEN.value, log_level=logging.CRITICAL)
+print_ok_arrow = make_formatter_printer(
+    Colors.OKGREEN.value, prefix=Prefixes.ARROW.value, log_level=logging.CRITICAL
+)
+print_bright = make_formatter_printer(Colors.OKCYAN.value, log_level=logging.WARNING)
+print_warn = make_formatter_printer(Colors.WARNING.value, log_level=logging.WARNING)
+print_fail = make_formatter_printer(Colors.FAIL.value, log_level=logging.CRITICAL)
+print_fail_arrow = make_formatter_printer(
+    Colors.FAIL.value, prefix=Prefixes.ARROW.value, log_level=logging.CRITICAL
+)
+print_bold = make_formatter_printer(Colors.BOLD.value, log_level=logging.CRITICAL)
+print_normal = make_formatter_printer(Colors.ENDC.value, log_level=logging.DEBUG)
+print_normal_arrow = make_formatter_printer(
+    Colors.ENDC.value, prefix=Prefixes.ARROW.value, log_level=logging.DEBUG
+)
+
 
 format_ok_blue = make_formatter_printer(Colors.OKBLUE.value, return_formatter=True)
 format_ok = make_formatter_printer(Colors.OKGREEN.value, return_formatter=True)
