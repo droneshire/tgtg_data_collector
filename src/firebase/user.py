@@ -451,6 +451,8 @@ class FirebaseUser:
                     grid_width_meters=context["gridWidthMeters"],
                     trigger_search=context["triggerSearch"],
                     send_email=context["autoUpload"],
+                    max_cost_per_city=context["maxCostPerCity"],
+                    cost_per_square=context["costPerSquare"],
                 )
                 search_contexts.append(search_context)
 

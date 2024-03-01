@@ -9,6 +9,11 @@ import pytz
 from firebase.user import FirebaseUser
 from search_context.google_places import GooglePlacesAPI
 from search_context.us_census import USCensusAPI
+from search_context.util import (
+    METERS_PER_MILE,
+    get_city_center_coordinates,
+    get_search_grid_details,
+)
 from too_good_to_go import data_types as too_good_to_go_data_types
 from too_good_to_go.manager import TgtgManager
 from too_good_to_go.search_interval import is_time_to_search
@@ -285,9 +290,56 @@ class TgtgCollectorBackend:
             if not search_context["trigger_search"]:
                 continue
 
-            log.print_bright(f"Found {search_context['city']} search contexts trigger")
+            city = search_context["city"]
 
-            log.print_normal(f"{json.dumps(search_context, indent=4)}")
+            log.print_bright(f"Found {city} search contexts trigger")
+
+            if self.verbose:
+                log.print_normal(f"{json.dumps(search_context, indent=4)}")
+
+            city_center_coordinates = get_city_center_coordinates(city)
+
+            if city_center_coordinates is None:
+                center_lat = 0.0
+                center_lon = 0.0
+            else:
+                center_lat, center_lon = city_center_coordinates
+
+            sent_city_center_coordinates = search_context["city_center"]
+            sent_center_lat, sent_center_lon = sent_city_center_coordinates
+            max_grid_resolution_width_meters = search_context["grid_width_meters"]
+            radius_meters = search_context["radius_miles"] * METERS_PER_MILE
+            max_cost_per_city = search_context["max_cost_per_city"]
+            cost_per_search = search_context["cost_per_square"]
+
+            if sent_center_lat != center_lat or sent_center_lon != center_lon:
+                log.print_warn(
+                    "Search context does not match current user or city center coordinates: "
+                    f"{sent_city_center_coordinates} vs {city_center_coordinates}"
+                )
+
+            # Get the maximum width of the viewport for our search to have good resolution
+            # since places api limits the search results to 20 max regardless of the radius
+            log.print_normal(f"Using city center: {sent_city_center_coordinates}")
+            log.print_normal(f"Using maximum viewpoint width: {max_grid_resolution_width_meters}")
+            log.print_normal(f"Using radius: {radius_meters}")
+            log.print_normal(f"Using max cost per city: {max_cost_per_city}")
+            log.print_normal(f"Using cost per search: {cost_per_search}")
+
+            grid_df, city_center_coordinates, num_grid_squares, total_cost = (
+                get_search_grid_details(
+                    city,
+                    max_grid_resolution_width_meters,
+                    radius_meters,
+                    max_cost_per_city,
+                    cost_per_search,
+                )
+            )
+
+            # TODO(ross): now run the actual search and store/publish the results, will need to
+            # update the firebase db with the results and this will need to be kicked off in
+            # its own thread or process so that we can continue to check for new searches as it
+            # will take a while to run the search and we don't want to block the main loop
 
             self.firebase_user.clear_search_context(search_context["user"], search_context["city"])
 

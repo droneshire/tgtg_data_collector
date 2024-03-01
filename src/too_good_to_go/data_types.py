@@ -10,6 +10,8 @@ class SearchContext(TypedDict):
     grid_width_meters: float
     send_email: bool
     trigger_search: bool
+    max_cost_per_city: float
+    cost_per_square: float
 
 
 class Region(TypedDict):

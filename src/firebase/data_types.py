@@ -65,6 +65,8 @@ class SearchContext(T.TypedDict):
     gridWidthMeters: int
     triggerSearch: bool
     autoUpload: bool
+    maxCostPerCity: float
+    costPerSquare: float
 
 
 class User(T.TypedDict):
@@ -105,5 +107,7 @@ NULL_USER = User(
         gridWidthMeters=0,
         triggerSearch=False,
         autoUpload=False,
+        maxCostPerCity=0.0,
+        costPerSquare=0.0,
     ),
 )

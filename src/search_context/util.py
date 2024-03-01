@@ -3,6 +3,7 @@ import typing as T
 
 import pandas as pd
 from geopy.geocoders import Nominatim
+from global_land_mask import globe
 
 from util import log
 
@@ -113,7 +114,11 @@ def get_viewport(
 
 
 def get_grid_coordinates(
-    center_lat: float, center_lon: float, radius_meters: float, grid_side_meters: float
+    center_lat: float,
+    center_lon: float,
+    radius_meters: float,
+    grid_side_meters: float,
+    skip_over_water: bool,
 ) -> T.List[T.Tuple[float, float]]:
     """
     Given a center (lat, lon), radius in meters, and grid square area in meters,
@@ -138,7 +143,10 @@ def get_grid_coordinates(
         for j in range(lon_steps - 1):
             lat = center_lat - lat_adjustment + (lat_step_size / 2) + i * lat_step_size
             lon = center_lon - lon_adjustment + (lon_step_size / 2) + j * lon_step_size
-            grid.append((lat, lon))
+            if skip_over_water and globe.is_land(lat, lon):
+                grid.append((lat, lon))
+            else:
+                grid.append((lat, lon))
 
     return grid
 
@@ -203,6 +211,7 @@ def get_search_grid_details(
         center_lon=center_lon,
         radius_meters=radius_meters,
         grid_side_meters=max_grid_resolution_width_meters,
+        skip_over_water=True,
     )
     radius_miles = radius_meters / METERS_PER_MILE
 
