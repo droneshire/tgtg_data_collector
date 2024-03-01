@@ -12,7 +12,7 @@ import typing as T
 
 import requests
 
-from demographics.util import get_viewport
+from search_context.util import get_viewport
 from util import log
 
 

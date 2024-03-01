@@ -6,8 +6,8 @@ import typing as T
 
 import pytz
 
-from demographics.google_places import GooglePlacesAPI
-from demographics.us_census import USCensusAPI
+from search_context.google_places import GooglePlacesAPI
+from search_context.us_census import USCensusAPI
 from firebase.user import FirebaseUser
 from too_good_to_go import data_types as too_good_to_go_data_types
 from too_good_to_go.manager import TgtgManager

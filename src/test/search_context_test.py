@@ -1,9 +1,9 @@
 import unittest
 
-from demographics import util
+from search_context import util
 
 
-class DemographicsTest(unittest.TestCase):
+class SearchContextTest(unittest.TestCase):
 
     def test_get_address_from_string(self):
         address = (

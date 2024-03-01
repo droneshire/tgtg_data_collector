@@ -135,3 +135,4 @@ def get_grid_coordinates(
             grid.append((lat, lon))
 
     return grid
+
