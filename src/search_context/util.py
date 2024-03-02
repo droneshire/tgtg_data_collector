@@ -1,7 +1,6 @@
 import math
 import typing as T
 
-import pandas as pd
 from geopy.geocoders import Nominatim
 from global_land_mask import globe
 
@@ -9,6 +8,21 @@ from util import log
 
 METERS_PER_MILE = 1609.34
 METERS_PER_KILOMETER = 1000.0
+
+
+class Coordinates(T.TypedDict):
+    latitude: float
+    longitude: float
+
+
+class Viewport(T.TypedDict):
+    low: Coordinates
+    high: Coordinates
+
+
+class SearchGrid(T.TypedDict):
+    center: Coordinates
+    viewport: Viewport
 
 
 def extract_city(address: str) -> T.Optional[str]:
@@ -87,9 +101,7 @@ def meters_to_degress(meters: float, center_lat: float) -> T.Tuple[float, float]
     return lat_adjustment, lon_adjustment
 
 
-def get_viewport(
-    center_lat: float, center_lon: float, radius_meters: float
-) -> T.Dict[str, T.Dict[str, float]]:
+def get_viewport(center_lat: float, center_lon: float, radius_meters: float) -> Viewport:
     """
     Given a center (lat, lon) and radius in meters, calculate a viewport.
     Where the low is the bottom left corner and the high is the top right corner.
@@ -119,7 +131,8 @@ def get_grid_coordinates(
     radius_meters: float,
     grid_side_meters: float,
     skip_over_water: bool,
-) -> T.List[T.Tuple[float, float]]:
+    verbose: bool = False,
+) -> T.List[SearchGrid]:
     """
     Given a center (lat, lon), radius in meters, and grid square area in meters,
     calculate a grid of coordinates.
@@ -137,16 +150,20 @@ def get_grid_coordinates(
 
     grid = []
 
-    # Subtract 1 from lat_steps and lon_steps to avoid going over the radius
-    # since we are adding half the step size to the center
-    for i in range(lat_steps - 1):
-        for j in range(lon_steps - 1):
+    for i in range(lat_steps):
+        for j in range(lon_steps):
             lat = center_lat - lat_adjustment + (lat_step_size / 2) + i * lat_step_size
             lon = center_lon - lon_adjustment + (lon_step_size / 2) + j * lon_step_size
-            if skip_over_water and globe.is_land(lat, lon):
-                grid.append((lat, lon))
-            else:
-                grid.append((lat, lon))
+
+            viewport: Viewport = get_viewport(lat, lon, grid_side_meters)
+            search_grid = SearchGrid(center={"latitude": lat, "longitude": lon}, viewport=viewport)
+
+            if not skip_over_water:
+                grid.append(search_grid)
+            elif globe.is_land(lat, lon):
+                grid.append(search_grid)
+            elif verbose:
+                log.print_warn(f"Skipping water grid at {lat}, {lon}")
 
     return grid
 
@@ -155,7 +172,7 @@ def calculate_cost_from_results(
     search_block_width: float,
     cost_per_square: float,
     radius_meters: float,
-    print_results: bool = True,
+    verbose: bool = False,
 ) -> T.Tuple[int, float]:
     search_block_area = (
         search_block_width * search_block_width
@@ -165,12 +182,12 @@ def calculate_cost_from_results(
 
     total_area_meters = area_width * area_width
 
-    # Calculate how many 50 meter squares fit into the area
-    number_of_squares = total_area_meters / search_block_area
+    # Calculate how many search_block_width meter squares fit into the area
+    number_of_squares = int(total_area_meters / search_block_area)
 
     total_cost = number_of_squares * cost_per_square
 
-    if print_results:
+    if verbose:
         print(f"Total searches: {number_of_squares:.0f}")
         print(f"Total cost: ${total_cost:.2f}")
         print(f"Searched area: {search_block_area:.2f} m^2")
@@ -185,11 +202,13 @@ def get_search_grid_details(
     radius_meters: float,
     max_cost_per_city: float,
     cost_per_search: float,
-) -> T.Tuple[pd.DataFrame, T.Tuple[float, float], int, float]:
+    verbose: bool = False,
+) -> T.Tuple[T.List[SearchGrid], T.Tuple[float, float], int, float]:
     city_center_coordinates = get_city_center_coordinates(city)
     assert city_center_coordinates, f"Location not found for {city}"
 
-    log.print_bright(f"City center: {city_center_coordinates}")
+    if verbose:
+        log.print_bright(f"City center: {city_center_coordinates}")
 
     center_lat, center_lon = city_center_coordinates
 
@@ -198,13 +217,22 @@ def get_search_grid_details(
     grid = []
 
     # Now optimize for cost by reducing the radius until it is within budget
-    log.print_normal("Optimizing for cost")
-    while total_cost > max_cost_per_city and radius_meters > METERS_PER_KILOMETER:
+    log.print_normal(f"Optimizing {city} for cost...")
+    new_radius_meters = radius_meters
+    step_size_meters = METERS_PER_KILOMETER
+    while True:
         number_of_squares, total_cost = calculate_cost_from_results(
-            max_grid_resolution_width_meters, cost_per_search, radius_meters, print_results=False
+            max_grid_resolution_width_meters, cost_per_search, new_radius_meters, verbose=False
         )
-        log.print_normal(total_cost)
-        radius_meters -= METERS_PER_KILOMETER
+        if total_cost <= max_cost_per_city:
+            # new_radius_meters += step_size_meters
+            break
+
+        if new_radius_meters <= step_size_meters:
+            log.print_fail("Radius is too small for the cost")
+            break
+
+        new_radius_meters -= step_size_meters
 
     grid = get_grid_coordinates(
         center_lat=center_lat,
@@ -212,13 +240,12 @@ def get_search_grid_details(
         radius_meters=radius_meters,
         grid_side_meters=max_grid_resolution_width_meters,
         skip_over_water=True,
+        verbose=verbose,
     )
     radius_miles = radius_meters / METERS_PER_MILE
-
-    grid_df = pd.DataFrame(grid, columns=["latitude", "longitude"])
 
     log.print_normal(f"Final radius: {radius_miles:.2f} miles")
     log.print_normal(f"Grid size: {len(grid)}")
     log.print_normal(f"Grid center: {city_center_coordinates}")
 
-    return (grid_df, city_center_coordinates, number_of_squares, total_cost)
+    return (grid, city_center_coordinates, number_of_squares, total_cost)
