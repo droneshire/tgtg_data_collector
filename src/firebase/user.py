@@ -389,22 +389,28 @@ class FirebaseUser:
                 if context is None or not context:
                     continue
 
-                search_context = too_good_to_go_data_types.SearchContext(
-                    user=user,
-                    city=context["city"],
-                    city_center=(
-                        context["cityCenter"]["latitude"],
-                        context["cityCenter"]["longitude"],
-                    ),
-                    radius_miles=context["radiusMiles"],
-                    num_squares=context["numberOfSquares"],
-                    grid_width_meters=context["gridWidthMeters"],
-                    trigger_search=context["triggerSearch"],
-                    send_email=context["autoUpload"],
-                    max_cost_per_city=context["maxCostPerCity"],
-                    cost_per_square=context["costPerSquare"],
-                )
-                search_contexts.append(search_context)
+                try:
+                    search_context = too_good_to_go_data_types.SearchContext(
+                        user=user,
+                        city=context["city"],
+                        city_center=(
+                            context["cityCenter"]["latitude"],
+                            context["cityCenter"]["longitude"],
+                        ),
+                        radius_miles=context["radiusMiles"],
+                        num_squares=context["numberOfSquares"],
+                        grid_width_meters=context["gridWidthMeters"],
+                        trigger_search=context["triggerSearch"],
+                        send_email=context["autoUpload"],
+                        max_cost_per_city=context["maxCostPerCity"],
+                        cost_per_square=context["costPerSquare"],
+                        census_year=context["censusDetails"]["year"],
+                        census_source_path=context["censusDetails"]["sourcePath"],
+                        census_codes=list(context["censusDetails"]["fields"].keys()),
+                    )
+                    search_contexts.append(search_context)
+                except KeyError as exception:
+                    log.print_warn(f"Could not find key {exception} in search context for {user}")
 
         return search_contexts
 

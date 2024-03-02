@@ -56,6 +56,12 @@ class Searches(T.TypedDict):
     collectionTimeStart: int
 
 
+class CensusDetails(T.TypedDict):
+    year: int
+    sourcePath: str
+    fields: T.Dict[str, str]
+
+
 class SearchContext(T.TypedDict):
     city: str
     cityCenter: T.Dict[str, float]
@@ -67,6 +73,7 @@ class SearchContext(T.TypedDict):
     autoUpload: bool
     maxCostPerCity: float
     costPerSquare: float
+    censusDetails: CensusDetails
 
 
 class User(T.TypedDict):
@@ -109,5 +116,10 @@ NULL_USER = User(
         autoUpload=False,
         maxCostPerCity=0.0,
         costPerSquare=0.0,
+        censusDetails=CensusDetails(
+            year=0,
+            sourcePath="",
+            fields={},
+        ),
     ),
 )

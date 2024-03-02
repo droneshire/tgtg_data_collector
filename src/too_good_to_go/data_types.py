@@ -12,6 +12,9 @@ class SearchContext(TypedDict):
     trigger_search: bool
     max_cost_per_city: float
     cost_per_square: float
+    census_year: int
+    census_source_path: str
+    census_codes: List[str]
 
 
 class Region(TypedDict):
