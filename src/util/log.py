@@ -180,21 +180,23 @@ def make_formatter_printer(
         return formatted_text
 
     def printer(message, *args, **kwargs):
-        if log_level == logging.DEBUG:
-            logger.debug(message)
-        elif log_level == logging.WARNING:
-            logger.warning(message)
-        elif log_level == logging.ERROR:
-            logger.error(message)
-        elif log_level == logging.INFO:
-            logger.info(message)
-        elif log_level == logging.CRITICAL:
-            logger.critical(message)
-
+        is_logger_in_use = logging.getLogger().hasHandlers()
         if _ALWAYS_PRINT:
             print(formatter(message, *args, **kwargs))
-        elif logging.getLogger().isEnabledFor(log_level):
+        elif not is_logger_in_use or logging.getLogger().isEnabledFor(log_level):
             print(formatter(message, *args, **kwargs))
+
+        if is_logger_in_use:
+            if log_level == logging.DEBUG:
+                logger.debug(message)
+            elif log_level == logging.WARNING:
+                logger.warning(message)
+            elif log_level == logging.ERROR:
+                logger.error(message)
+            elif log_level == logging.INFO:
+                logger.info(message)
+            elif log_level == logging.CRITICAL:
+                logger.critical(message)
 
         sys.stdout.flush()
 

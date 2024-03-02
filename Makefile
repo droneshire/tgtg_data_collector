@@ -45,10 +45,13 @@ create_account:
 	$(RUN_PY) executables.tgtg_api_setup --email $(email) --number-of-credentials $(emails)
 
 reset_monitor:
-	$(RUN_PY) executables.reset_monitor
+	$(RUN_PY) executables.reset_monitor $(ARGS)
 
 test_run:
-	$(RUN_PY) executables.test_uploads
+	$(RUN_PY) executables.test_uploads $(ARGS)
+
+run_search:
+	$(RUN_PY) search_context.executables.run_searcher $(ARGS)
 
 clean:
 	rm -rf *.pickle

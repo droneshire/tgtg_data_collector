@@ -15,6 +15,45 @@ import requests
 from search_context.util import get_viewport
 from util import log
 
+ADVANCED_FIELDS = [
+    "places.formattedAddress",
+    "places.displayName",
+    "places.nationalPhoneNumber",
+    "places.location",
+    "places.rating",
+    "places.googleMapsUri",
+    "places.websiteUri",
+    "places.regularOpeningHours",
+    "places.businessStatus",
+    "places.priceLevel",
+    "places.userRatingCount",
+    "places.takeout",
+    "places.delivery",
+    "places.dineIn",
+    "places.servesBreakfast",
+    "places.primaryTypeDisplayName",
+    "places.primaryType",
+    "places.editorialSummary",
+    "places.outdoorSeating",
+    "places.servesCoffee",
+    "places.paymentOptions",
+    "places.accessibilityOptions",
+]
+
+TYPES = [
+    "bakery",
+    "sandwich_shop",
+    "coffee_shop",
+    "cafe",
+    "fast_food_restaurant",
+    "store",
+    "restaurant",
+    "food",
+    "point_of_interest",
+    "establishment",
+]
+ADVANCED_PROMPT = f"All {'s, '.join(list(t for t in TYPES))}"
+
 
 class GooglePlacesAPI:
     HEADERS = {
@@ -66,7 +105,7 @@ class GooglePlacesAPI:
         except Exception as exception:  # pylint: disable=broad-except
             log.print_fail(f"Could not search for {query}")
             log.print_warn(exception)
-            return {}
+            raise exception
 
     def search_location_radius(
         self,

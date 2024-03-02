@@ -5,7 +5,7 @@ import tempfile
 
 import dotenv
 
-from firebase.user import FirebaseUser
+from firebase.storage import FirebaseStorage
 from util import log, short_url
 
 
@@ -17,7 +17,9 @@ def main() -> None:
     firebase_credentials_file = os.environ["FIREBASE_CREDENTIALS_FILE"]
     firebase_storage_path = os.environ["FIREBASE_STORAGE_PATH"]
 
-    firebase_user = FirebaseUser(firebase_credentials_file, firebase_storage_path, verbose=True)
+    firebase_storage = FirebaseStorage(
+        firebase_credentials_file, firebase_storage_path, verbose=True
+    )
 
     json_path = tempfile.mktemp(suffix=".json")
     csv_path = tempfile.mktemp(suffix=".csv")
@@ -29,7 +31,7 @@ def main() -> None:
         outfile.write("test,test,test\n")
 
     for attachment in [json_path, csv_path]:
-        url = firebase_user.upload_file_and_get_url(
+        url = firebase_storage.upload_file_and_get_url(
             user, attachment, random.randint(1, 100), verbose=True
         )
         log.print_ok(f"Download url:\n\n{url}\n\n")

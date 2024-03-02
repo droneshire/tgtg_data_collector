@@ -6,6 +6,7 @@ import typing as T
 
 import pytz
 
+from firebase.storage import FirebaseStorage
 from firebase.user import FirebaseUser
 from search_context.google_places import GooglePlacesAPI
 from search_context.us_census import USCensusAPI
@@ -35,6 +36,7 @@ class TgtgCollectorBackend:
         email_obj: email.Email,
         tgtg_manager: TgtgManager,
         firebase_user: FirebaseUser,
+        firebase_cloud_storage: FirebaseStorage,
         census_api: USCensusAPI,
         google_places_api: GooglePlacesAPI,
         tgtg_data_dir: str,
@@ -45,6 +47,7 @@ class TgtgCollectorBackend:
         self.email = email_obj
         self.tgtg_manager = tgtg_manager
         self.firebase_user = firebase_user
+        self.firebase_cloud_storage = firebase_cloud_storage
         self.census_api = census_api
         self.google_places_api = google_places_api
         self.firebase_user.send_email_callback = self._maybe_send_email_or_upload
@@ -120,7 +123,7 @@ class TgtgCollectorBackend:
         message += f"Start time: {search['hour_start']}\n"
         message += "Search location: \n"
         message += f"{json.dumps(search['region'], indent=4)}\n\n"
-        expire_time_seconds = int(self.firebase_user.EXP_TIME_MINUTES * 60.0)
+        expire_time_seconds = int(self.firebase_cloud_storage.EXP_TIME_MINUTES * 60.0)
         expire_time_pretty = get_pretty_seconds(expire_time_seconds, use_days=True)
         message += f"Download links (which expire in {expire_time_pretty}):\n\n"
         for url in urls:
@@ -139,7 +142,7 @@ class TgtgCollectorBackend:
         urls = []
         for attachment in attachments:
             try:
-                url = self.firebase_user.upload_file_and_get_url(
+                url = self.firebase_cloud_storage.upload_file_and_get_url(
                     search["user"], attachment, search["num_results"]
                 )
                 extension = os.path.splitext(attachment)[1]
@@ -208,7 +211,7 @@ class TgtgCollectorBackend:
 
         for attachment in attachments:
             try:
-                self.firebase_user.delete_search_uploads(search["user"], blob_name)
+                self.firebase_cloud_storage.delete_search_uploads(search["user"], blob_name)
             except Exception as exception:  # pylint: disable=broad-except
                 log.print_warn(f"Failed to delete uploads: {exception}")
 
@@ -326,14 +329,12 @@ class TgtgCollectorBackend:
             log.print_normal(f"Using max cost per city: {max_cost_per_city}")
             log.print_normal(f"Using cost per search: {cost_per_search}")
 
-            grid_df, city_center_coordinates, num_grid_squares, total_cost = (
-                get_search_grid_details(
-                    city,
-                    max_grid_resolution_width_meters,
-                    radius_meters,
-                    max_cost_per_city,
-                    cost_per_search,
-                )
+            grid, city_center_coordinates, num_grid_squares, total_cost = get_search_grid_details(
+                city,
+                max_grid_resolution_width_meters,
+                radius_meters,
+                max_cost_per_city,
+                cost_per_search,
             )
 
             # TODO(ross): now run the actual search and store/publish the results, will need to
