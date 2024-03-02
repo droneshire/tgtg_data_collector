@@ -19,7 +19,7 @@ from too_good_to_go import data_types as too_good_to_go_data_types
 from too_good_to_go.manager import TgtgManager
 from too_good_to_go.search_interval import is_time_to_search
 from util import email, file_util, fmt_util, log, short_url, wait
-from util.fmt_util import get_pretty_seconds
+from util.fmt_util import get_pretty_seconds, print_simple_rich_table
 
 
 class TgtgCollectorBackend:
@@ -339,17 +339,31 @@ class TgtgCollectorBackend:
                 )
             )
 
-            log.print_ok_blue(f"Final radius: {new_radius_meters / METERS_PER_MILE:.2f} miles")
-            log.print_ok_blue(f"Number of grid squares: {num_grid_squares}")
-            log.print_ok_blue(f"Grid size: {len(grid)}")
-            log.print_ok_blue(f"Grid resolution: {max_grid_resolution_width_meters} meters")
-            log.print_ok_blue(f"Total cost: ${total_cost:.2f}")
+            data = [
+                {"Parameter": "City", "Value": city},
+                {"Parameter": "City center", "Value": str(city_center_coordinates)},
+                {
+                    "Parameter": "Final radius",
+                    "Value": f"{new_radius_meters / METERS_PER_MILE:.2f} miles",
+                },
+                {
+                    "Parameter": "Grid resolution",
+                    "Value": f"{max_grid_resolution_width_meters} meters",
+                },
+                {"Parameter": "Grid size max", "Value": str(num_grid_squares)},
+                {"Parameter": "Grid size actual", "Value": str(len(grid))},
+                {"Parameter": "Total cost", "Value": f"${total_cost:.2f}"},
+            ]
+
+            print_simple_rich_table(
+                "Search Grid Parameters",
+                data,
+            )
 
             # TODO(ross): now run the actual search and store/publish the results, will need to
             # update the firebase db with the results and this will need to be kicked off in
             # its own thread or process so that we can continue to check for new searches as it
             # will take a while to run the search and we don't want to block the main loop
-
             self.firebase_user.clear_search_context(search_context["user"], search_context["city"])
 
     def _check_to_firebase(self) -> None:

@@ -1,5 +1,8 @@
 import typing as T
 
+from rich.console import Console
+from rich.table import Table
+
 
 def camel_to_snake(str_in: str) -> str:
     # https://stackoverflow.com/a/1176023/10940584
@@ -38,3 +41,24 @@ def get_pretty_seconds(seconds: int, use_days: bool = False) -> str:
     else:
         string = f"{hours:d}h:{minutes:02d}m:{seconds:02d}s"
     return string
+
+
+def print_simple_rich_table(title: str, data: T.List[T.Dict[str, str]]) -> None:
+    console = Console()
+
+    # infer the column names from the first item in the list
+    column1 = list(data[0].keys())[0]
+    column2 = list(data[0].keys())[1]
+
+    table = Table(title=title, show_header=True, header_style="bold magenta")
+
+    max_stat_len = max(len(stat[column1]) for stat in data)
+    max_val_len = max(len(stat[column2]) for stat in data)
+
+    table.add_column(column1, style="dim", width=max_stat_len)
+    table.add_column(column2, width=int(max_val_len * 1.1))
+
+    for item in data:
+        table.add_row(item[column1], item[column2])
+
+    console.print(table)

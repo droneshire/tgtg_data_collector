@@ -48,8 +48,8 @@ def run_loop(args: argparse.Namespace, bot_pidfile: str) -> None:
     )
     firebase_credentials_file = os.environ["FIREBASE_CREDENTIALS_FILE"]
     firebase_storage_path = os.environ["FIREBASE_STORAGE_PATH"]
-    firebase_user = FirebaseUser(firebase_credentials_file, verbose=args.verbose)
     firebase_cloud_storage = FirebaseStorage(firebase_credentials_file, firebase_storage_path)
+    firebase_user = FirebaseUser(firebase_credentials_file, verbose=args.verbose)
     census_api = USCensusAPI(os.environ["CENSUS_API_KEY"])
     google_places_api = GooglePlacesAPI(os.environ["GOOGLE_MAPS_PLACES_API_KEY"])
 

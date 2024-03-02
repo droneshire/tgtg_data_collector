@@ -9,8 +9,6 @@ from datetime import datetime
 
 import dotenv
 import pytz
-from rich.console import Console
-from rich.table import Table
 
 from constants import PROJECT_NAME
 from search_context.google_places import GooglePlacesAPI
@@ -21,7 +19,7 @@ from search_context.util import (
     get_city_center_coordinates,
     get_search_grid_details,
 )
-from util import file_util, log
+from util import file_util, fmt_util, log
 
 
 def parse_args() -> argparse.Namespace:
@@ -126,8 +124,6 @@ def get_search_grid(
     )
     # pylint: enable=duplicate-code
 
-    console = Console()
-    table = Table(title="Search Grid Details", show_header=True, header_style="bold magenta")
     data = [
         {"Parameter": "City", "Value": city},
         {"Parameter": "City center", "Value": str(city_center_coordinates)},
@@ -137,16 +133,11 @@ def get_search_grid(
         {"Parameter": "Grid size actual", "Value": str(len(grid))},
         {"Parameter": "Total cost", "Value": f"${total_cost:.2f}"},
     ]
-    max_stat_len = max(len(stat["Parameter"]) for stat in data)
-    max_val_len = max(len(stat["Value"]) for stat in data)
 
-    table.add_column("Parameter", style="dim", width=max_stat_len)
-    table.add_column("Value", width=max_val_len * 2)
-
-    for stat in data:
-        table.add_row(stat["Parameter"], stat["Value"])
-    log.print_normal("\n")
-    console.print(table)
+    fmt_util.print_simple_rich_table(
+        "Search Grid Parameters",
+        data,
+    )
 
     return grid if grid else []
 
