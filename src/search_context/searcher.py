@@ -25,6 +25,7 @@ class Searcher:
         credentials_file: str,
         storage_bucket: str,
         max_search_calls: int = MAX_SEARCH_CALLS,
+        auto_init: bool = True,
         clamp_at_max: bool = False,
         verbose: bool = False,
     ) -> None:
@@ -41,7 +42,7 @@ class Searcher:
             credentials_file=credentials_file,
             send_email_callback=None,
             verbose=verbose,
-            auto_init=False,
+            auto_init=auto_init,
         )
 
         self.header = list(self._get_flatten_data("", "", {}).keys())
@@ -106,11 +107,13 @@ class Searcher:
 
     def run_search(
         self,
+        user: str,
         search_name: str,
         search_grid: T.List[SearchGrid],
         time_zone: T.Any,
         prompt: str = DEFAULT_PROMPT,
         fields: T.Optional[T.List[str]] = None,
+        and_upload: bool = True,
         dry_run: bool = False,
     ) -> None:
         log.print_bright(f"Starting {search_name} search...")
@@ -178,3 +181,11 @@ class Searcher:
                         csv.write(self._get_flatten_data(search_name, date_formated, dict(place)))
 
                 progress.update(task, advance=1)
+
+        if dry_run:
+            return
+
+        self.firestore_user.clear_search_context(user, search_name)
+
+        if and_upload:
+            self.firestore_storage.upload_file_and_get_url(user, self.results_csv, len(results))

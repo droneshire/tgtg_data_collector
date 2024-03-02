@@ -41,7 +41,7 @@ def parse_args() -> argparse.Namespace:
     log_dir = log.get_logging_dir(PROJECT_NAME)
     results_dir = os.path.join(log_dir, "search_context_results")
     file_util.make_sure_path_exists(results_dir)
-    default_results_csv = os.path.join(results_dir, f"search_results_{datetime_str}.csv")
+    default_results_csv = os.path.join(results_dir, f"search_context_results_{datetime_str}.csv")
     parser.add_argument(
         "--results_csv",
         type=str,
@@ -155,6 +155,7 @@ def main() -> None:
         credentials_file=args.credentials_file,
         storage_bucket=args.storage_bucket,
         max_search_calls=args.max_search_calls,
+        auto_init=False,
         clamp_at_max=args.clamp_at_max,
         verbose=args.verbose,
     )
@@ -164,9 +165,11 @@ def main() -> None:
     )
 
     searcher.run_search(
+        user=args.email,
         search_name=f"{args.city} Search",
         search_grid=grid,
         time_zone=pytz.timezone("America/Los_Angeles"),
+        and_upload=not args.dry_run,
         dry_run=args.dry_run,
     )
 
