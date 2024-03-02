@@ -53,6 +53,7 @@ TYPES = [
     "establishment",
 ]
 ADVANCED_PROMPT = f"All {'s, '.join(list(t for t in TYPES))}"
+DEFAULT_PROMPT = "All restaurants"
 
 
 class GooglePlacesAPI:

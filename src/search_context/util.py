@@ -225,7 +225,6 @@ def get_search_grid_details(
             max_grid_resolution_width_meters, cost_per_search, new_radius_meters, verbose=False
         )
         if total_cost <= max_cost_per_city:
-            # new_radius_meters += step_size_meters
             break
 
         if new_radius_meters <= step_size_meters:

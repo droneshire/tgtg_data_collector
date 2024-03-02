@@ -5,7 +5,7 @@ from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
 
 from firebase.storage import FirebaseStorage
 from firebase.user import FirebaseUser
-from search_context.google_places import ADVANCED_FIELDS, ADVANCED_PROMPT, GooglePlacesAPI
+from search_context.google_places import ADVANCED_FIELDS, DEFAULT_PROMPT, GooglePlacesAPI
 from search_context.us_census import USCensusAPI
 from search_context.util import SearchGrid
 from util import csv_logger, log
@@ -30,6 +30,7 @@ class Searcher:
     ) -> None:
         self.google_places = GooglePlacesAPI(google_api_key, verbose=verbose)
         self.us_census = USCensusAPI(us_census_api_key)
+        self.results_csv = results_csv
         self.email = email
         self.max_search_calls = max_search_calls
         self.clamp_at_max = clamp_at_max
@@ -37,10 +38,13 @@ class Searcher:
 
         self.firestore_storage = FirebaseStorage(credentials_file, storage_bucket, verbose=verbose)
         self.firestore_user: FirebaseUser = FirebaseUser(
-            credentials_file=credentials_file, send_email_callback=None
+            credentials_file=credentials_file,
+            send_email_callback=None,
+            verbose=verbose,
+            auto_init=False,
         )
-        header = list(self._get_flatten_data("", "", {}).keys())
-        self.csv = csv_logger.CsvLogger(csv_file=results_csv, header=header)
+
+        self.header = list(self._get_flatten_data("", "", {}).keys())
 
     def _get_flatten_data(self, search_name: str, timestamp: str, data: T.Dict) -> T.Dict:
         flattened_data = {
@@ -81,24 +85,17 @@ class Searcher:
         }
 
         for i in range(7):  # Assuming 7 days a week
-            flattened_data[f"open_day_{i}"] = safe_get(
-                data, ["regularOpeningHours", "periods", i, "open", "day"]
-            )
-            flattened_data[f"open_hour_{i}"] = safe_get(
-                data, ["regularOpeningHours", "periods", i, "open", "hour"]
-            )
-            flattened_data[f"open_minute_{i}"] = safe_get(
-                data, ["regularOpeningHours", "periods", i, "open", "minute"]
-            )
-            flattened_data[f"close_day_{i}"] = safe_get(
-                data, ["regularOpeningHours", "periods", i, "close", "day"]
-            )
-            flattened_data[f"close_hour_{i}"] = safe_get(
-                data, ["regularOpeningHours", "periods", i, "close", "hour"]
-            )
-            flattened_data[f"close_minute_{i}"] = safe_get(
-                data, ["regularOpeningHours", "periods", i, "close", "minute"]
-            )
+            periods = safe_get(data, ["regularOpeningHours", "periods"], [])
+
+            if i >= len(periods):
+                continue
+
+            flattened_data[f"open_day_{i}"] = safe_get(periods[i], ["open", "day"])
+            flattened_data[f"open_hour_{i}"] = safe_get(periods[i], ["open", "hour"])
+            flattened_data[f"open_minute_{i}"] = safe_get(periods[i], ["open", "minute"])
+            flattened_data[f"close_day_{i}"] = safe_get(periods[i], ["close", "day"])
+            flattened_data[f"close_hour_{i}"] = safe_get(periods[i], ["close", "hour"])
+            flattened_data[f"close_minute_{i}"] = safe_get(periods[i], ["close", "minute"])
 
         for i, desc in enumerate(
             safe_get(data, ["regularOpeningHours", "weekdayDescriptions"], [])
@@ -112,11 +109,11 @@ class Searcher:
         search_name: str,
         search_grid: T.List[SearchGrid],
         time_zone: T.Any,
-        prompt: str = ADVANCED_PROMPT,
+        prompt: str = DEFAULT_PROMPT,
         fields: T.Optional[T.List[str]] = None,
         dry_run: bool = False,
     ) -> None:
-        log.print_bright("Starting search...")
+        log.print_bright(f"Starting {search_name} search...")
 
         if fields is None:
             fields = ADVANCED_FIELDS
@@ -137,6 +134,8 @@ class Searcher:
 
             log.print_warn(f"Clamping search grid at maximum of {MAX_SEARCH_CALLS}")
             search_grid = search_grid[:MAX_SEARCH_CALLS]
+
+        csv = csv_logger.CsvLogger(csv_file=self.results_csv, header=self.header)
 
         with Progress(
             TextColumn("[progress.description]{task.description}"),
@@ -176,8 +175,6 @@ class Searcher:
                     log.print_warn("No results found")
                 else:
                     for place in results["places"]:
-                        self.csv.write(
-                            self._get_flatten_data(search_name, date_formated, dict(place))
-                        )
+                        csv.write(self._get_flatten_data(search_name, date_formated, dict(place)))
 
                 progress.update(task, advance=1)

@@ -11,7 +11,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from google.cloud.firestore_v1.base_document import DocumentSnapshot
 from google.cloud.firestore_v1.collection import CollectionReference
-from google.cloud.firestore_v1.watch import DocumentChange
+from google.cloud.firestore_v1.watch import DocumentChange, Watch
 
 from firebase import data_types as firebase_data_types
 from too_good_to_go import data_types as too_good_to_go_data_types
@@ -35,6 +35,7 @@ class FirebaseUser:
         credentials_file: str,
         send_email_callback: T.Optional[SendEmailCallbackType] = None,
         verbose: bool = False,
+        auto_init: bool = True,
     ) -> None:
         if not firebase_admin._apps:  # pylint: disable=protected-access
             auth = credentials.Certificate(credentials_file)
@@ -45,7 +46,7 @@ class FirebaseUser:
         self.user_ref: CollectionReference = self.database.collection("user")
         self.admin_ref: CollectionReference = self.database.collection("admin")
 
-        self.users_watcher = self.user_ref.on_snapshot(self._collection_snapshot_handler)
+        self.users_watcher: T.Optional[Watch] = None
 
         self.database_cache: T.Dict[str, firebase_data_types.User] = {}
 
@@ -55,6 +56,12 @@ class FirebaseUser:
         self.last_health_ping: T.Optional[float] = None
 
         self._send_email_callback: T.Optional[SendEmailCallbackType] = send_email_callback
+
+        if auto_init:
+            self.init()
+
+    def init(self) -> None:
+        self.users_watcher = self.user_ref.on_snapshot(self._collection_snapshot_handler)
 
     def _delete_user(self, name: str) -> None:
         """

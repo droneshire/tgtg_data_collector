@@ -9,6 +9,8 @@ from datetime import datetime
 
 import dotenv
 import pytz
+from rich.console import Console
+from rich.table import Table
 
 from constants import PROJECT_NAME
 from search_context.google_places import GooglePlacesAPI
@@ -79,7 +81,7 @@ def parse_args() -> argparse.Namespace:
         "--radius_miles", type=float, default=20.0, help="Radius in miles to search"
     )
     parser.add_argument("--city", type=str, required=True, help="City to search in")
-    parser.add_argument("--max_cost", type=float, default=10.0, help="Maximum cost")
+    parser.add_argument("--max_cost", type=float, default=1.0, help="Maximum cost")
     parser.add_argument("--cost_per_search", type=float, default=0.04, help="Cost per search")
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
     parser.add_argument("--dry_run", action="store_true", help="Dry run")
@@ -87,7 +89,12 @@ def parse_args() -> argparse.Namespace:
 
 
 def get_search_grid(
-    city: str, radius_miles: float, max_cost: float, cost_per_search: float, google_api_key: str
+    city: str,
+    radius_miles: float,
+    max_cost: float,
+    cost_per_search: float,
+    google_api_key: str,
+    verbose: bool = False,
 ) -> T.List[SearchGrid]:
     radius_meters = radius_miles * METERS_PER_MILE
 
@@ -98,7 +105,7 @@ def get_search_grid(
 
     # Get the maximum width of the viewport for our search to have good resolution
     # since places api limits the search results to 20 max regardless of the radius
-    google_places = GooglePlacesAPI(google_api_key, verbose=True)
+    google_places = GooglePlacesAPI(google_api_key, verbose=verbose)
     log.print_bright("Finding maximum viewpoint width...")
     max_grid_resolution_width_meters = google_places.find_maximum_viewpoint_width(
         center_lat, center_lon, "All restaurants"
@@ -119,12 +126,27 @@ def get_search_grid(
     )
     # pylint: enable=duplicate-code
 
-    log.print_ok_blue(f"Final radius: {new_radius_meters / METERS_PER_MILE:.2f} miles")
-    log.print_ok_blue(f"Number of grid squares: {num_grid_squares}")
-    log.print_ok_blue(f"Grid size: {len(grid)}")
-    log.print_ok_blue(f"Total cost: ${total_cost:.2f}")
-    log.print_ok_blue(f"City center: {city_center_coordinates}")
-    log.print_ok_blue(f"Grid resolution: {max_grid_resolution_width_meters} meters")
+    console = Console()
+    table = Table(title="Search Grid Details", show_header=True, header_style="bold magenta")
+    data = [
+        {"Parameter": "City", "Value": city},
+        {"Parameter": "City center", "Value": str(city_center_coordinates)},
+        {"Parameter": "Final radius", "Value": f"{new_radius_meters / METERS_PER_MILE:.2f} miles"},
+        {"Parameter": "Grid resolution", "Value": f"{max_grid_resolution_width_meters} meters"},
+        {"Parameter": "Grid size max", "Value": str(num_grid_squares)},
+        {"Parameter": "Grid size actual", "Value": str(len(grid))},
+        {"Parameter": "Total cost", "Value": f"${total_cost:.2f}"},
+    ]
+    max_stat_len = max(len(stat["Parameter"]) for stat in data)
+    max_val_len = max(len(stat["Value"]) for stat in data)
+
+    table.add_column("Parameter", style="dim", width=max_stat_len)
+    table.add_column("Value", width=max_val_len * 2)
+
+    for stat in data:
+        table.add_row(stat["Parameter"], stat["Value"])
+    log.print_normal("\n")
+    console.print(table)
 
     return grid if grid else []
 
