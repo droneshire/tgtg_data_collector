@@ -112,7 +112,7 @@ def get_search_grid(
         radius_meters,
         max_cost,
         cost_per_search,
-        verbose=True,
+        verbose=False,
     )
 
     log.print_ok_blue(f"Number of grid squares: {num_grid_squares}")

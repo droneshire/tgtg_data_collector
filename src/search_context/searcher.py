@@ -116,17 +116,21 @@ class Searcher:
         fields: T.Optional[T.List[str]] = None,
         dry_run: bool = False,
     ) -> None:
-        log.print_bright("Starting search")
+        log.print_bright("Starting search...")
 
         if fields is None:
             fields = ADVANCED_FIELDS
+
+        log.print_normal("Checking grid size...")
 
         if len(search_grid) == 0:
             log.print_warn("No search grid provided")
             return
 
         if len(search_grid) > MAX_SEARCH_CALLS:
-            log.print_fail_arrow("Search grid larger than maximum allowed")
+            log.print_fail_arrow(
+                f"Search grid larger than maximum allowed: {len(search_grid)}/{MAX_SEARCH_CALLS}"
+            )
 
             if not self.clamp_at_max:
                 return
@@ -153,14 +157,11 @@ class Searcher:
 
                 date_formated = local_time.strftime("%Y-%m-%d %H:%M:%S %Z")
 
+                if dry_run:
+                    progress.update(task, advance=1)
+                    continue
+
                 try:
-                    if dry_run:
-                        log.print_bright(
-                            f"Dry run: Would be searching for "
-                            f"{grid['center']['latitude']}, {grid['center']['longitude']}"
-                        )
-                        progress.update(task, advance=1)
-                        continue
                     results = self.google_places.text_search(prompt, fields, data)
                 except Exception as exception:  # pylint: disable=broad-except
                     log.print_fail(
@@ -168,6 +169,7 @@ class Searcher:
                         f"{grid['center']['latitude']}, {grid['center']['longitude']}"
                     )
                     log.print_warn(exception)
+                    progress.update(task, advance=1)
                     continue
 
                 if "places" not in results:
