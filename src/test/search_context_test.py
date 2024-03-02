@@ -1,8 +1,8 @@
 import unittest
+from unittest.mock import MagicMock, patch
 
 from search_context import util
 from search_context.util import SearchGrid, get_search_grid_details
-from unittest.mock import MagicMock, patch
 
 
 class SearchContextTest(unittest.TestCase):
@@ -184,7 +184,7 @@ class SearchContextTest(unittest.TestCase):
         cost_per_search = 25.0
         verbose = False
 
-        # Call the function with the test parameters
+        # pylint: disable=duplicate-code
         result = get_search_grid_details(
             city,
             max_grid_resolution_width_meters,
@@ -193,17 +193,18 @@ class SearchContextTest(unittest.TestCase):
             cost_per_search,
             verbose,
         )
+        # pylint: enable=duplicate-code
 
-        # Verify the function returns the expected results
         self.assertIsInstance(result, tuple)
-        self.assertEqual(len(result), 4)
-        grid, city_center_coordinates, number_of_squares, total_cost = result
+        self.assertEqual(len(result), 5)
+        grid, city_center_coordinates, number_of_squares, total_cost, new_radius_meters = result
         self.assertIsInstance(grid, list)
+        self.assertIsInstance(city_center_coordinates, tuple)
         self.assertEqual(len(grid), 8)
         self.assertEqual(total_cost, 150.0)
         self.assertEqual(number_of_squares, 8)
+        self.assertNotEqual(new_radius_meters, radius_meters)
 
-        # Verify external functions were called as expected
         mock_get_city_center_coordinates.assert_called_once_with(city)
         self.assertEqual(mock_calculate_cost_from_results.call_count, 2)
         mock_get_grid_coordinates.assert_called_once()

@@ -294,7 +294,3 @@ class TgtgTest(unittest.TestCase):
 
         price = TgtgManager.convert_to_price(item_two, "item.price_including_taxes")
         self.assertEqual(price, "3.00 EUR")
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -19,7 +19,7 @@ from search_context.util import (
     get_city_center_coordinates,
     get_search_grid_details,
 )
-from util import log, file_util
+from util import file_util, log
 
 
 def parse_args() -> argparse.Namespace:
@@ -106,21 +106,27 @@ def get_search_grid(
 
     log.print_ok_blue(f"Maximum viewpoint width: {max_grid_resolution_width_meters} meters")
 
-    grid, city_center_coordinates, num_grid_squares, total_cost = get_search_grid_details(
-        city,
-        max_grid_resolution_width_meters,
-        radius_meters,
-        max_cost,
-        cost_per_search,
-        verbose=False,
+    # pylint: disable=duplicate-code
+    grid, city_center_coordinates, num_grid_squares, total_cost, new_radius_meters = (
+        get_search_grid_details(
+            city,
+            max_grid_resolution_width_meters,
+            radius_meters,
+            max_cost,
+            cost_per_search,
+            verbose=False,
+        )
     )
+    # pylint: enable=duplicate-code
 
+    log.print_ok_blue(f"Final radius: {new_radius_meters / METERS_PER_MILE:.2f} miles")
     log.print_ok_blue(f"Number of grid squares: {num_grid_squares}")
+    log.print_ok_blue(f"Grid size: {len(grid)}")
     log.print_ok_blue(f"Total cost: ${total_cost:.2f}")
     log.print_ok_blue(f"City center: {city_center_coordinates}")
     log.print_ok_blue(f"Grid resolution: {max_grid_resolution_width_meters} meters")
 
-    return grid
+    return grid if grid else []
 
 
 def main() -> None:

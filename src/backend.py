@@ -329,13 +329,21 @@ class TgtgCollectorBackend:
             log.print_normal(f"Using max cost per city: {max_cost_per_city}")
             log.print_normal(f"Using cost per search: {cost_per_search}")
 
-            grid, city_center_coordinates, num_grid_squares, total_cost = get_search_grid_details(
-                city,
-                max_grid_resolution_width_meters,
-                radius_meters,
-                max_cost_per_city,
-                cost_per_search,
+            grid, city_center_coordinates, num_grid_squares, total_cost, new_radius_meters = (
+                get_search_grid_details(
+                    city,
+                    max_grid_resolution_width_meters,
+                    radius_meters,
+                    max_cost_per_city,
+                    cost_per_search,
+                )
             )
+
+            log.print_ok_blue(f"Final radius: {new_radius_meters / METERS_PER_MILE:.2f} miles")
+            log.print_ok_blue(f"Number of grid squares: {num_grid_squares}")
+            log.print_ok_blue(f"Grid size: {len(grid)}")
+            log.print_ok_blue(f"Grid resolution: {max_grid_resolution_width_meters} meters")
+            log.print_ok_blue(f"Total cost: ${total_cost:.2f}")
 
             # TODO(ross): now run the actual search and store/publish the results, will need to
             # update the firebase db with the results and this will need to be kicked off in

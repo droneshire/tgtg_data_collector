@@ -203,7 +203,7 @@ def get_search_grid_details(
     max_cost_per_city: float,
     cost_per_search: float,
     verbose: bool = False,
-) -> T.Tuple[T.List[SearchGrid], T.Tuple[float, float], int, float]:
+) -> T.Tuple[T.List[SearchGrid], T.Tuple[float, float], int, float, float]:
     city_center_coordinates = get_city_center_coordinates(city)
     assert city_center_coordinates, f"Location not found for {city}"
 
@@ -237,15 +237,10 @@ def get_search_grid_details(
     grid = get_grid_coordinates(
         center_lat=center_lat,
         center_lon=center_lon,
-        radius_meters=radius_meters,
+        radius_meters=new_radius_meters,
         grid_side_meters=max_grid_resolution_width_meters,
         skip_over_water=True,
         verbose=verbose,
     )
-    radius_miles = radius_meters / METERS_PER_MILE
 
-    log.print_normal(f"Final radius: {radius_miles:.2f} miles")
-    log.print_normal(f"Grid size: {len(grid)}")
-    log.print_normal(f"Grid center: {city_center_coordinates}")
-
-    return (grid, city_center_coordinates, number_of_squares, total_cost)
+    return (grid, city_center_coordinates, number_of_squares, total_cost, new_radius_meters)
