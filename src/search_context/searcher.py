@@ -117,7 +117,7 @@ class Searcher:
             flattened_data[f"weekday_desc_{i}"] = desc
 
         common_copy = self.common_data.copy()
-        flattened_data.update(common_copy)
+        common_copy.update(flattened_data)
 
         return flattened_data
 
@@ -162,15 +162,13 @@ class Searcher:
         local_time = date_localized - local_offset
         date_formated = local_time.strftime("%Y-%m-%d %H:%M:%S %Z")
 
-        search_num = 1
-
         self.common_data["timestamp"] = date_formated
         self.common_data["search_name"] = search_name
         self.common_data["search_latitude"] = grid["center"]["latitude"]
         self.common_data["search_longitude"] = grid["center"]["longitude"]
         self.common_data["square_width_meters"] = grid["width_meters"]
         self.common_data["grid_size"] = search_size
-        self.common_data["search_num"] = search_num
+        self.common_data["search_num"] = self.common_data.get("search_num", 0) + 1  # type: ignore
 
     def _search_a_grid(
         self,
