@@ -9,6 +9,8 @@ from census import Census
 from constants import DEFAULT_CENSUS_FIELDS_JSON_FILE
 from util import dict_util, log
 
+ListorStr = T.Union[str, T.List[str]]
+
 
 class USCensusAPI:
     def __init__(
@@ -45,7 +47,28 @@ class USCensusAPI:
                 log.print_warn(f"Could not load cache file: {self.cache_json_file}")
                 self.census_fields_cache = {}
 
-    def get_census_data(self, field: str, address: str):
+    def get_census_data_from_lat_long(
+        self,
+        fields: ListorStr,
+        lat: float,
+        long: float,
+    ) -> T.Optional[T.Dict[str, T.Any]]:
+        try:
+            result = censusgeocode.coordinates(x=lat, y=long)
+        except Exception:  # pylint: disable=broad-except
+            log.print_warn(f"Could not find lat/long: {lat}, {long}")
+            return None
+
+        if result is None:
+            log.print_warn(f"Could not find lat/long: {lat}, {long}")
+            return None
+
+        log.print_bright(f"Found lat/long: {lat}, {long}")
+        return self._get_census_data(f"{lat}, {long}", result, fields)
+
+    def get_census_data_from_address(
+        self, fields: ListorStr, address: str
+    ) -> T.Optional[T.Dict[str, T.Any]]:
         try:
             result = censusgeocode.onelineaddress(address)
         except Exception:  # pylint: disable=broad-except
@@ -57,37 +80,50 @@ class USCensusAPI:
             return None
 
         log.print_bright(f"Found address: {address}")
+        return self._get_census_data(address, result, fields)
 
-        state = self._item("STATE", result)
-        county = self._item("COUNTY", result)
-        tract = self._item("TRACT", result)
-        block_group = self._item("BLKGRP", result)
+    def _get_census_data(
+        self, search_location: str, geocode_results: T.Dict[str, T.Any], fields: ListorStr
+    ) -> T.Dict[str, T.Any]:
+        state = self._item("STATE", geocode_results)
+        county = self._item("COUNTY", geocode_results)
+        tract = self._item("TRACT", geocode_results)
+        block_group = self._item("BLKGRP", geocode_results)
 
         if not state or not county or not tract or not block_group:
-            log.print_warn(f"Could not find geo info about {field} for address: {address}")
-            return None
+            log.print_warn(f"Could not find geo info about for {search_location}")
+            return {}
 
         log.print_normal(f"State: {state}")
         log.print_normal(f"County: {county}")
         log.print_normal(f"Tract: {tract}")
         log.print_normal(f"Block Group: {block_group}")
 
+        if not isinstance(fields, list):
+            fields = [fields]
+
         try:
             result = self.census.acs5.state_county_blockgroup(
-                field, state, county, tract=tract, blockgroup=block_group
+                fields, state, county, tract=tract, blockgroup=block_group
             )
         except Exception as exception:  # pylint: disable=broad-except
-            log.print_warn(f"Could not find census data for address: {address}")
+            log.print_warn(f"Could not find census data for {search_location}")
             log.print_warn(exception)
-            return None
+            return {}
 
         if not result:
-            log.print_warn(f"Could not find census data for address: {address}")
-            return None
+            log.print_warn(f"Could not find census data for {search_location}")
+            return {}
 
-        data = result[0][field]
+        data = {}
+        for field in fields:
+            if field not in result[0]:
+                log.print_warn(f"Could not find {field} in census data for {search_location}")
+                continue
 
-        log.print_bold(f"Found {self.get_description_for_field(field)}: {data}")
+            data[field] = result[0][field]
+
+            log.print_bold(f"Found {self.get_description_for_field(field)}: {data[field]}")
 
         return data
 

@@ -31,7 +31,10 @@ class Searcher:
     ) -> None:
         self.google_places = GooglePlacesAPI(google_api_key, verbose=verbose)
         self.us_census = USCensusAPI(us_census_api_key)
-        self.results_csv = results_csv
+        path_name = results_csv.split(".csv")[0]
+        date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self.places_csv = f"{path_name}_places_{date_str}.csv"
+        self.census_csv = f"{path_name}_censu_{date_str}.csv"
         self.email = email
         self.max_search_calls = max_search_calls
         self.clamp_at_max = clamp_at_max
@@ -44,13 +47,28 @@ class Searcher:
             verbose=verbose,
             auto_init=auto_init,
         )
+        self.common_headers = [
+            "timestamp",
+            "search_name",
+            "search_latitude",
+            "search_longitude",
+        ]
+        self.places_logger: T.Optional[csv_logger.CsvLogger] = None
+        self.census_logger: T.Optional[csv_logger.CsvLogger] = None
 
-        self.header = list(self._get_flatten_data("", "", {}).keys())
-
-    def _get_flatten_data(self, search_name: str, timestamp: str, data: T.Dict) -> T.Dict:
+    def _get_flatten_places_data(
+        self,
+        search_name: str,
+        timestamp: str,
+        search_latitude: float,
+        search_longitude: float,
+        data: T.Dict[str, T.Any],
+    ) -> T.Dict[str, T.Any]:
         flattened_data = {
             "timestamp": timestamp,
             "search_name": search_name,
+            "search_latitude": search_latitude,
+            "search_longitude": search_longitude,
             "nationalPhoneNumber": safe_get(data, ["nationalPhoneNumber"], ""),
             "formattedAddress": safe_get(data, ["formattedAddress"], ""),
             "latitude": safe_get(data, ["location", "latitude"]),
@@ -105,6 +123,100 @@ class Searcher:
 
         return flattened_data
 
+    def _get_places_results(
+        self, prompt: str, fields: T.List[str], grid: SearchGrid
+    ) -> T.List[T.Dict[str, T.Any]]:
+        data = {"locationRestriction": {"rectangle": grid["viewport"]}}
+
+        try:
+            results = self.google_places.text_search(prompt, fields, data)
+        except Exception as exception:  # pylint: disable=broad-except
+            log.print_fail(
+                f"Could not google places search for "
+                f"{grid['center']['latitude']}, {grid['center']['longitude']}"
+            )
+            log.print_warn(exception)
+            return []
+
+        if "places" not in results:
+            log.print_warn("No results found")
+            return []
+
+        return list(results["places"])
+
+    def _get_census_results(self, fields: T.List[str], block_address: str) -> T.Dict[str, T.Any]:
+        results: T.Dict[str, T.Any] = {}
+        try:
+            raw_results = self.us_census.get_census_data_from_address(fields, block_address)
+            if raw_results:
+                results = dict(raw_results)
+        except Exception as exception:  # pylint: disable=broad-except
+            log.print_fail(f"Could not census search for {block_address} with fields {fields}")
+            log.print_warn(exception)
+        return results
+
+    def _search_a_grid(
+        self,
+        search_name: str,
+        prompt: str,
+        places_fields: T.List[str],
+        census_fields: T.List[str],
+        grid: SearchGrid,
+        time_zone: T.Any,
+        dry_run: bool,
+    ) -> T.Tuple[int, int]:
+        if dry_run or self.census_logger is None or self.places_logger is None:
+            return 0, 0
+
+        places = self._get_places_results(prompt, places_fields, grid)
+        address = None
+
+        date_now = datetime.now()
+        date_localized = time_zone.localize(date_now)
+        local_offset = date_localized.utcoffset()
+        local_time = date_localized - local_offset
+        date_formated = local_time.strftime("%Y-%m-%d %H:%M:%S %Z")
+
+        for place in places:
+            if address is None:
+                address = place.get("formattedAddress", None)
+            self.places_logger.write(
+                self._get_flatten_places_data(
+                    search_name,
+                    date_formated,
+                    grid["center"]["latitude"],
+                    grid["center"]["longitude"],
+                    place,
+                )
+            )
+
+        if not places or not census_fields or not address:
+            return 0, 0
+
+        census_results = self._get_census_results(census_fields, address)
+        if census_results:
+            self.census_logger.write(
+                {
+                    "timestamp": date_formated,
+                    "search_name": search_name,
+                    "search_latitude": grid["center"]["latitude"],
+                    "search_longitude": grid["center"]["longitude"],
+                    **census_results,
+                }
+            )
+
+        return len(places), len(census_results.keys())
+
+    def _setup_csv_loggers(
+        self, search_name: str, census_fields: T.Optional[T.List[str]], dry_run: bool
+    ) -> None:
+        if dry_run:
+            return
+        places_header = list(self._get_flatten_places_data(search_name, "", 0.0, 0.0, {}).keys())
+        census_header = self.common_headers + census_fields if census_fields else []
+        self.places_logger = csv_logger.CsvLogger(csv_file=self.places_csv, header=places_header)
+        self.census_logger = csv_logger.CsvLogger(csv_file=self.census_csv, header=census_header)
+
     def run_search(
         self,
         user: str,
@@ -112,14 +224,18 @@ class Searcher:
         search_grid: T.List[SearchGrid],
         time_zone: T.Any,
         prompt: str = DEFAULT_PROMPT,
-        fields: T.Optional[T.List[str]] = None,
+        places_fields: T.Optional[T.List[str]] = None,
+        census_fields: T.Optional[T.List[str]] = None,
         and_upload: bool = True,
         dry_run: bool = False,
     ) -> None:
         log.print_bright(f"Starting {search_name} search...")
 
-        if fields is None:
-            fields = ADVANCED_FIELDS
+        if places_fields is None:
+            places_fields = ADVANCED_FIELDS
+
+        if census_fields is None:
+            census_fields = []
 
         log.print_normal("Checking grid size...")
 
@@ -138,7 +254,7 @@ class Searcher:
             log.print_warn(f"Clamping search grid at maximum of {MAX_SEARCH_CALLS}")
             search_grid = search_grid[:MAX_SEARCH_CALLS]
 
-        csv = csv_logger.CsvLogger(csv_file=self.results_csv, header=self.header)
+        self._setup_csv_loggers(search_name, census_fields, dry_run)
 
         with Progress(
             TextColumn("[progress.description]{task.description}"),
@@ -149,37 +265,15 @@ class Searcher:
         ) as progress:
             task = progress.add_task("Grid Search", total=len(search_grid))
 
+            places_found = 0
+            census_found = 0
+
             for grid in search_grid:
-                data = {"locationRestriction": {"rectangle": grid["viewport"]}}
-
-                date_now = datetime.now()
-                date_localized = time_zone.localize(date_now)
-                local_offset = date_localized.utcoffset()
-                local_time = date_localized - local_offset
-
-                date_formated = local_time.strftime("%Y-%m-%d %H:%M:%S %Z")
-
-                if dry_run:
-                    progress.update(task, advance=1)
-                    continue
-
-                try:
-                    results = self.google_places.text_search(prompt, fields, data)
-                except Exception as exception:  # pylint: disable=broad-except
-                    log.print_fail(
-                        f"Could not search for "
-                        f"{grid['center']['latitude']}, {grid['center']['longitude']}"
-                    )
-                    log.print_warn(exception)
-                    progress.update(task, advance=1)
-                    continue
-
-                if "places" not in results:
-                    log.print_warn("No results found")
-                else:
-                    for place in results["places"]:
-                        csv.write(self._get_flatten_data(search_name, date_formated, dict(place)))
-
+                places, census = self._search_a_grid(
+                    search_name, prompt, places_fields, census_fields, grid, time_zone, dry_run
+                )
+                places_found += places
+                census_found += census
                 progress.update(task, advance=1)
 
         if dry_run:
@@ -188,4 +282,5 @@ class Searcher:
         self.firestore_user.clear_search_context(user, search_name)
 
         if and_upload:
-            self.firestore_storage.upload_file_and_get_url(user, self.results_csv, len(results))
+            self.firestore_storage.upload_file_and_get_url(user, self.places_csv, places_found)
+            self.firestore_storage.upload_file_and_get_url(user, self.census_csv, census_found)
