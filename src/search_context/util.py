@@ -23,6 +23,7 @@ class Viewport(T.TypedDict):
 class SearchGrid(T.TypedDict):
     center: Coordinates
     viewport: Viewport
+    width_meters: float
 
 
 def extract_city(address: str) -> T.Optional[str]:
@@ -134,7 +135,7 @@ def get_grid_coordinates(
     verbose: bool = False,
 ) -> T.List[SearchGrid]:
     """
-    Given a center (lat, lon), radius in meters, and grid square area in meters,
+    Given a center (lat, lon), radius in meters, and grid side area in meters,
     calculate a grid of coordinates.
     """
 
@@ -156,7 +157,11 @@ def get_grid_coordinates(
             lon = center_lon - lon_adjustment + (lon_step_size / 2) + j * lon_step_size
 
             viewport: Viewport = get_viewport(lat, lon, grid_side_meters)
-            search_grid = SearchGrid(center={"latitude": lat, "longitude": lon}, viewport=viewport)
+            search_grid = SearchGrid(
+                center={"latitude": lat, "longitude": lon},
+                viewport=viewport,
+                width_meters=grid_side_meters,
+            )
 
             if not skip_over_water:
                 grid.append(search_grid)

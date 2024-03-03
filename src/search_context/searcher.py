@@ -47,28 +47,23 @@ class Searcher:
             verbose=verbose,
             auto_init=auto_init,
         )
-        self.common_headers = [
-            "timestamp",
-            "search_name",
-            "search_latitude",
-            "search_longitude",
-        ]
+        self.common_data = {
+            "timestamp": "",
+            "search_name": "",
+            "search_latitude": 0.0,
+            "search_longitude": 0.0,
+            "square_width_meters": 0.0,
+            "search_num": 0,
+            "grid_size": 0,
+        }
         self.places_logger: T.Optional[csv_logger.CsvLogger] = None
         self.census_logger: T.Optional[csv_logger.CsvLogger] = None
 
     def _get_flatten_places_data(
         self,
-        search_name: str,
-        timestamp: str,
-        search_latitude: float,
-        search_longitude: float,
         data: T.Dict[str, T.Any],
     ) -> T.Dict[str, T.Any]:
         flattened_data = {
-            "timestamp": timestamp,
-            "search_name": search_name,
-            "search_latitude": search_latitude,
-            "search_longitude": search_longitude,
             "nationalPhoneNumber": safe_get(data, ["nationalPhoneNumber"], ""),
             "formattedAddress": safe_get(data, ["formattedAddress"], ""),
             "latitude": safe_get(data, ["location", "latitude"]),
@@ -121,6 +116,9 @@ class Searcher:
         ):
             flattened_data[f"weekday_desc_{i}"] = desc
 
+        common_copy = self.common_data.copy()
+        flattened_data.update(common_copy)
+
         return flattened_data
 
     def _get_places_results(
@@ -155,24 +153,35 @@ class Searcher:
             log.print_warn(exception)
         return results
 
-    def _search_a_grid(
-        self,
-        search_name: str,
-        prompt: str,
-        places_fields: T.List[str],
-        census_fields: T.List[str],
-        grid: SearchGrid,
-        time_zone: T.Any,
-        dry_run: bool,
-    ) -> T.Tuple[int, int]:
-        if dry_run or self.census_logger is None or self.places_logger is None:
-            return 0, 0
-
+    def _update_common_data(
+        self, search_name: str, search_size: int, grid: SearchGrid, time_zone: T.Any
+    ) -> None:
         date_now = datetime.now()
         date_localized = time_zone.localize(date_now)
         local_offset = date_localized.utcoffset()
         local_time = date_localized - local_offset
         date_formated = local_time.strftime("%Y-%m-%d %H:%M:%S %Z")
+
+        search_num = 1
+
+        self.common_data["timestamp"] = date_formated
+        self.common_data["search_name"] = search_name
+        self.common_data["search_latitude"] = grid["center"]["latitude"]
+        self.common_data["search_longitude"] = grid["center"]["longitude"]
+        self.common_data["square_width_meters"] = grid["width_meters"]
+        self.common_data["grid_size"] = search_size
+        self.common_data["search_num"] = search_num
+
+    def _search_a_grid(
+        self,
+        prompt: str,
+        places_fields: T.List[str],
+        census_fields: T.List[str],
+        grid: SearchGrid,
+        dry_run: bool,
+    ) -> T.Tuple[int, int]:
+        if dry_run or self.census_logger is None or self.places_logger is None:
+            return 0, 0
 
         places = self._get_places_results(prompt, places_fields, grid)
         address = None
@@ -182,15 +191,7 @@ class Searcher:
                 address = place.get("formattedAddress", None)
                 if not self.us_census.is_usable_address(address):
                     address = None
-            self.places_logger.write(
-                self._get_flatten_places_data(
-                    search_name,
-                    date_formated,
-                    grid["center"]["latitude"],
-                    grid["center"]["longitude"],
-                    place,
-                )
-            )
+            self.places_logger.write(self._get_flatten_places_data(place))
 
         log.print_bright(f"Found {len(places)} places, using {address} for census search")
 
@@ -199,25 +200,17 @@ class Searcher:
 
         census_results = self._get_census_results(census_fields, address)
         if census_results:
-            self.census_logger.write(
-                {
-                    "timestamp": date_formated,
-                    "search_name": search_name,
-                    "search_latitude": grid["center"]["latitude"],
-                    "search_longitude": grid["center"]["longitude"],
-                    **census_results,
-                }
-            )
+            common_copy = self.common_data.copy()
+            census_results.update(common_copy)
+            self.census_logger.write(census_results)
 
         return len(places), len(census_results.keys())
 
-    def _setup_csv_loggers(
-        self, search_name: str, census_fields: T.Optional[T.List[str]], dry_run: bool
-    ) -> None:
+    def _setup_csv_loggers(self, census_fields: T.Optional[T.List[str]], dry_run: bool) -> None:
         if dry_run:
             return
-        places_header = list(self._get_flatten_places_data(search_name, "", 0.0, 0.0, {}).keys())
-        census_header = self.common_headers + census_fields if census_fields else []
+        places_header = list(self._get_flatten_places_data({}).keys())
+        census_header = list(self.common_data.keys()) + census_fields if census_fields else []
         self.places_logger = csv_logger.CsvLogger(csv_file=self.places_csv, header=places_header)
         self.census_logger = csv_logger.CsvLogger(csv_file=self.census_csv, header=census_header)
 
@@ -258,7 +251,7 @@ class Searcher:
             log.print_warn(f"Clamping search grid at maximum of {MAX_SEARCH_CALLS}")
             search_grid = search_grid[:MAX_SEARCH_CALLS]
 
-        self._setup_csv_loggers(search_name, census_fields, dry_run)
+        self._setup_csv_loggers(census_fields, dry_run)
 
         with Progress(
             TextColumn("[progress.description]{task.description}"),
@@ -273,8 +266,10 @@ class Searcher:
             census_found = 0
 
             for grid in search_grid:
+                self._update_common_data(search_name, len(search_grid), grid, time_zone)
+
                 places, census = self._search_a_grid(
-                    search_name, prompt, places_fields, census_fields, grid, time_zone, dry_run
+                    prompt, places_fields, census_fields, grid, dry_run
                 )
                 places_found += places
                 census_found += census

@@ -89,6 +89,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cost_per_search", type=float, default=0.04, help="Cost per search")
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
     parser.add_argument("--dry_run", action="store_true", help="Dry run")
+    parser.add_argument("--and_upload", action="store_true", help="Upload results to Firebase")
     return parser.parse_args()
 
 
@@ -176,7 +177,7 @@ def main() -> None:
         search_grid=grid,
         time_zone=pytz.timezone("America/Los_Angeles"),
         census_fields=args.census_fields.split(","),
-        and_upload=not args.dry_run,
+        and_upload=args.and_upload,
         dry_run=args.dry_run,
     )
 
