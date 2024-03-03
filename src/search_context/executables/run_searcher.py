@@ -41,7 +41,7 @@ def parse_args() -> argparse.Namespace:
     log_dir = log.get_logging_dir(PROJECT_NAME)
     results_dir = os.path.join(log_dir, "search_context_results")
     file_util.make_sure_path_exists(results_dir)
-    default_results_csv = os.path.join(results_dir, f"search_context_results_{datetime_str}.csv")
+    default_results_csv = os.path.join(results_dir, f"search_context_{datetime_str}.csv")
     parser.add_argument(
         "--results_csv",
         type=str,
@@ -77,6 +77,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--radius_miles", type=float, default=20.0, help="Radius in miles to search"
+    )
+    parser.add_argument(
+        "--census_fields",
+        type=str,
+        default="B01001_001E,B19013_001E",
+        help="Census fields to search for",
     )
     parser.add_argument("--city", type=str, required=True, help="City to search in")
     parser.add_argument("--max_cost", type=float, default=1.0, help="Maximum cost")
@@ -169,6 +175,7 @@ def main() -> None:
         search_name=f"{args.city} Search",
         search_grid=grid,
         time_zone=pytz.timezone("America/Los_Angeles"),
+        census_fields=args.census_fields.split(","),
         and_upload=not args.dry_run,
         dry_run=args.dry_run,
     )

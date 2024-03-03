@@ -34,7 +34,7 @@ class Searcher:
         path_name = results_csv.split(".csv")[0]
         date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         self.places_csv = f"{path_name}_places_{date_str}.csv"
-        self.census_csv = f"{path_name}_censu_{date_str}.csv"
+        self.census_csv = f"{path_name}_census_{date_str}.csv"
         self.email = email
         self.max_search_calls = max_search_calls
         self.clamp_at_max = clamp_at_max
@@ -168,18 +168,20 @@ class Searcher:
         if dry_run or self.census_logger is None or self.places_logger is None:
             return 0, 0
 
-        places = self._get_places_results(prompt, places_fields, grid)
-        address = None
-
         date_now = datetime.now()
         date_localized = time_zone.localize(date_now)
         local_offset = date_localized.utcoffset()
         local_time = date_localized - local_offset
         date_formated = local_time.strftime("%Y-%m-%d %H:%M:%S %Z")
 
+        places = self._get_places_results(prompt, places_fields, grid)
+        address = None
+
         for place in places:
             if address is None:
                 address = place.get("formattedAddress", None)
+                if not self.us_census.is_usable_address(address):
+                    address = None
             self.places_logger.write(
                 self._get_flatten_places_data(
                     search_name,
@@ -189,6 +191,8 @@ class Searcher:
                     place,
                 )
             )
+
+        log.print_bright(f"Found {len(places)} places, using {address} for census search")
 
         if not places or not census_fields or not address:
             return 0, 0

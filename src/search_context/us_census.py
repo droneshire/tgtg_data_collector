@@ -47,6 +47,17 @@ class USCensusAPI:
                 log.print_warn(f"Could not load cache file: {self.cache_json_file}")
                 self.census_fields_cache = {}
 
+    def is_usable_address(self, address: str) -> bool:
+        try:
+            result = censusgeocode.onelineaddress(address)
+            state = self._item("STATE", result)
+            county = self._item("COUNTY", result)
+            tract = self._item("TRACT", result)
+            block_group = self._item("BLKGRP", result)
+            return bool(state and county and tract and block_group)
+        except Exception:  # pylint: disable=broad-except
+            return False
+
     def get_census_data_from_lat_long(
         self,
         fields: ListorStr,
