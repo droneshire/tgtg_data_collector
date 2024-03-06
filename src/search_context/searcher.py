@@ -284,7 +284,7 @@ class Searcher:
                 progress.update(task, advance=1)
 
         self._maybe_upload_results(
-            user, search_name, places_found, census_found, dry_run, and_upload
+            user, search_name, places_found, census_found, census_fields, dry_run, and_upload
         )
 
     def _maybe_upload_results(
@@ -293,6 +293,7 @@ class Searcher:
         search_name: str,
         places_found: int,
         census_found: int,
+        census_codes: T.List[str],
         dry_run: bool,
         and_upload: bool,
     ) -> None:
@@ -328,6 +329,8 @@ class Searcher:
             f"Search {search_name} found:\n"
             f"- {places_found} Google Places results\n"
             f"- {census_found} census results\n\n"
+            f"Census codes used:\n"
+            f"- {', '.join(census_codes)}\n\n"
             f"Download link (which expires in {expire_time_pretty}):\n\n"
             f"- {url}\n\n"
             f"Thanks,\n"
