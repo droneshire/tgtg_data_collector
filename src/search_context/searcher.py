@@ -289,7 +289,7 @@ class Searcher:
             places_found,
             census_found,
             census_fields,
-            len(grid),
+            len(search_grid),
             dry_run,
             and_upload,
         )
