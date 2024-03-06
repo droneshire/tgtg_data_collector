@@ -2,14 +2,16 @@ import typing as T
 from datetime import datetime
 
 from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn, TimeRemainingColumn
+from validate_email_address import validate_email
 
 from firebase.storage import FirebaseStorage
 from firebase.user import FirebaseUser
 from search_context.google_places import ADVANCED_FIELDS, DEFAULT_PROMPT, GooglePlacesAPI
 from search_context.us_census import USCensusAPI
 from search_context.util import SearchGrid
-from util import csv_logger, file_util, log
+from util import csv_logger, email, file_util, log
 from util.dict_util import safe_get
+from util.fmt_util import get_pretty_seconds
 
 MAX_SEARCH_CALLS = 20000
 
@@ -21,7 +23,7 @@ class Searcher:
         google_api_key: str,
         us_census_api_key: str,
         results_csv: str,
-        email: str,
+        email_obj: email.Email,
         credentials_file: str,
         storage_bucket: str,
         max_search_calls: int = MAX_SEARCH_CALLS,
@@ -35,7 +37,7 @@ class Searcher:
         date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         self.places_csv = f"{path_name}_places_{date_str}.csv"
         self.census_csv = f"{path_name}_census_{date_str}.csv"
-        self.email = email
+        self.email = email_obj
         self.max_search_calls = max_search_calls
         self.clamp_at_max = clamp_at_max
         self.verbose = verbose
@@ -302,7 +304,40 @@ class Searcher:
         # these are likely very large files, so we tar + compress them
         file_util.create_tar_archive([self.places_csv, self.census_csv], tarname, True)
 
-        if and_upload:
-            self.firestore_storage.upload_file_and_get_url(
-                user, tarname, places_found + census_found
-            )
+        if not and_upload:
+            return
+
+        url = self.firestore_storage.upload_file_and_get_url(
+            user, tarname, places_found + census_found
+        )
+        log.print_bright(f"Uploaded {tarname} to {url}")
+
+        if not validate_email(user):
+            log.print_warn("Invalid email address")
+            return
+
+        expire_time_seconds = int(self.firestore_storage.EXP_TIME_MINUTES * 60.0)
+        expire_time_pretty = get_pretty_seconds(expire_time_seconds, use_days=True)
+
+        message = (
+            f"Hello!\n\n"
+            f"Search {search_name} found:\n"
+            f"- {places_found} Google Places results\n"
+            f"- {census_found} census results\n\n"
+            f"Download link (which expires in {expire_time_pretty}):\n\n"
+            f"- {url}\n\n"
+            f"Thanks,\n"
+            f"Too Good To Go Research Team\n"
+        )
+        did_send_email = email.send_email(
+            [self.email],
+            [user],
+            "Too Good To Go Places/Demographics Results",
+            content=message,
+            verbose=self.verbose,
+        )
+
+        if did_send_email:
+            log.print_bright(f"Sent email to {user}")
+        else:
+            log.print_fail(f"Could not send email to {user}")

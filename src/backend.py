@@ -66,7 +66,7 @@ class TgtgCollectorBackend:
             "google_api_key": google_places_api.api_key,
             "us_census_api_key": census_api.api_key,
             "results_csv": results_csv,
-            "email": "",
+            "email_obj": email_obj,
             "credentials_file": firebase_user.credentials_file,
             "storage_bucket": firebase_cloud_storage.storage_bucket,
             "clamp_at_max": False,
@@ -404,7 +404,7 @@ class TgtgCollectorBackend:
             )
 
         if self.run_in_thread:
-            self.threads[user] = threading.Thread(target=_run_search_thread)
+            self.threads[user] = threading.Thread(target=_run_search_thread, daemon=True)
             log.print_ok(f"Starting search thread for {city}")
             self.threads[user].start()
         else:

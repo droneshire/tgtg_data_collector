@@ -19,7 +19,7 @@ from search_context.util import (
     get_city_center_coordinates,
     get_search_grid_details,
 )
-from util import file_util, fmt_util, log
+from util import email, file_util, fmt_util, log
 
 
 def parse_args() -> argparse.Namespace:
@@ -155,11 +155,19 @@ def main() -> None:
 
     args = parse_args()
 
+    sender_email = email.Email(
+        {
+            "address": os.environ["SENDER_EMAIL_ADDRESS"],
+            "password": os.environ["SENDER_EMAIL_PASSWORD"],
+            "quiet": args.dry_run,
+        }
+    )
+
     searcher = Searcher(
         google_api_key=args.google_api_key,
         us_census_api_key=args.census_api_key,
         results_csv=args.results_csv,
-        email=args.email,
+        email_obj=sender_email,
         credentials_file=args.credentials_file,
         storage_bucket=args.storage_bucket,
         max_search_calls=args.max_search_calls,
