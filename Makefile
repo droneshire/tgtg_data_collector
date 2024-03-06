@@ -36,10 +36,10 @@ test:
 	$(RUN_PY) unittest discover -s test -p *_test.py -v
 
 run_worker_dev:
-	$(RUN_PY) executables.tgtg_worker --mode dev --time-between-loop 15 --verbose --use-proxies
+	$(RUN_PY) executables.tgtg_worker --mode dev --time-between-loop 15 --verbose --use-proxies $(ARGS)
 
 run_worker_prod:
-	$(RUN_PY) executables.tgtg_worker --mode prod --time-between-loop 20 --use-proxies
+	$(RUN_PY) executables.tgtg_worker --mode prod --time-between-loop 20 --use-proxies --run-in-thread
 
 create_account:
 	$(RUN_PY) executables.tgtg_api_setup --email $(email) --number-of-credentials $(emails)

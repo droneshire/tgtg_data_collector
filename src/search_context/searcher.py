@@ -1,7 +1,8 @@
+import time
 import typing as T
 from datetime import datetime
 
-from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
+from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn, TimeRemainingColumn
 
 from firebase.storage import FirebaseStorage
 from firebase.user import FirebaseUser
@@ -188,7 +189,7 @@ class Searcher:
         for place in places:
             if address is None:
                 address = place.get("formattedAddress", None)
-                if not self.us_census.is_usable_address(address):
+                if address and not self.us_census.is_usable_address(address):
                     address = None
             self.places_logger.write(self._get_flatten_places_data(place))
 
@@ -262,6 +263,7 @@ class Searcher:
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
             TextColumn("[progress.completed]{task.completed}/{task.total}"),
             TimeElapsedColumn(),
+            TimeRemainingColumn(),
         ) as progress:
             task = progress.add_task("Grid Search", total=len(search_grid))
 

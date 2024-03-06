@@ -52,4 +52,9 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Use proxies for requests",
     )
+    parser.add_argument(
+        "--run-in-thread",
+        action="store_true",
+        help="Run the script in a separate thread",
+    )
     return parser.parse_args()

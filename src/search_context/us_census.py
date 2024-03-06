@@ -20,6 +20,7 @@ class USCensusAPI:
         warm_cache: bool = True,
     ):
         self.census = Census(api_key)
+        self.api_key = api_key
         self.cache_json_file = cache_json_file
         self.census_fields_cache: T.Dict[str, T.Dict[str, T.Any]] = {}
 

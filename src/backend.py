@@ -45,6 +45,7 @@ class TgtgCollectorBackend:
         tgtg_data_dir: str,
         mode: str = "prod",
         results_csv: str = "",
+        run_in_thread: bool = True,
         verbose: bool = False,
         dry_run: bool = False,
     ) -> None:
@@ -59,10 +60,11 @@ class TgtgCollectorBackend:
         self.mode = mode
         self.verbose = verbose
         self.dry_run = dry_run
+        self.run_in_thread = run_in_thread
         self.time_between_searches = self.TIME_BETWEEN_SEARCHES
         self.searcher_args: T.Dict[str, T.Any] = {
-            "google_api_key": google_places_api,
-            "us_census_api_key": census_api,
+            "google_api_key": google_places_api.api_key,
+            "us_census_api_key": census_api.api_key,
             "results_csv": results_csv,
             "email": "",
             "credentials_file": firebase_user.credentials_file,
@@ -390,14 +392,17 @@ class TgtgCollectorBackend:
                 grid,
                 census_fields=search_context["census_codes"],
                 census_year=search_context["census_year"],
-                time_zone=search_context["time_zone"],
+                time_zone=pytz.timezone(search_context["time_zone"]),
                 and_upload=True,
                 dry_run=self.dry_run,
             )
 
-        search_thread = threading.Thread(target=_run_search_thread)
-        log.print_ok(f"Starting search thread for {city}")
-        search_thread.start()
+        if self.run_in_thread:
+            search_thread = threading.Thread(target=_run_search_thread)
+            log.print_ok(f"Starting search thread for {city}")
+            search_thread.start()
+        else:
+            _run_search_thread()
 
     def _maybe_run_search_context_jobs(
         self, search_contexts: T.List[too_good_to_go_data_types.SearchContext]

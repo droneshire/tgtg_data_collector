@@ -70,6 +70,7 @@ def run_loop(args: argparse.Namespace, bot_pidfile: str) -> None:
         tgtg_data_dir=args.tgtg_data_dir,
         mode=args.mode,
         results_csv=default_results_csv,
+        run_in_thread=args.run_in_thread,
         verbose=args.verbose,
         dry_run=args.dry_run,
     )
