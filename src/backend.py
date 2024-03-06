@@ -1,6 +1,8 @@
+import copy
 import json
 import os
 import random
+import threading
 import time
 import typing as T
 
@@ -9,6 +11,7 @@ import pytz
 from firebase.storage import FirebaseStorage
 from firebase.user import FirebaseUser
 from search_context.google_places import GooglePlacesAPI
+from search_context.searcher import MAX_SEARCH_CALLS, Searcher
 from search_context.us_census import USCensusAPI
 from search_context.util import (
     METERS_PER_MILE,
@@ -41,6 +44,7 @@ class TgtgCollectorBackend:
         google_places_api: GooglePlacesAPI,
         tgtg_data_dir: str,
         mode: str = "prod",
+        results_csv: str = "",
         verbose: bool = False,
         dry_run: bool = False,
     ) -> None:
@@ -56,6 +60,18 @@ class TgtgCollectorBackend:
         self.verbose = verbose
         self.dry_run = dry_run
         self.time_between_searches = self.TIME_BETWEEN_SEARCHES
+        self.searcher_args: T.Dict[str, T.Any] = {
+            "google_api_key": google_places_api,
+            "us_census_api_key": census_api,
+            "results_csv": results_csv,
+            "email": "",
+            "credentials_file": firebase_user.credentials_file,
+            "storage_bucket": firebase_cloud_storage.storage_bucket,
+            "clamp_at_max": False,
+            "max_search_calls": MAX_SEARCH_CALLS,
+            "auto_init": False,
+            "verbose": verbose,
+        }
 
         self.last_query_firebase_time: T.Optional[float] = None
 
@@ -286,85 +302,108 @@ class TgtgCollectorBackend:
             search["user"], search["search_name"], time.time(), num_results, uuid
         )
 
+    def _run_search_context_job(
+        self, search_context: too_good_to_go_data_types.SearchContext
+    ) -> None:
+        if not search_context["trigger_search"]:
+            return
+
+        city = search_context["city"]
+
+        log.print_bright(f"Found {city} search contexts trigger")
+
+        if self.verbose:
+            log.print_normal(f"{json.dumps(search_context, indent=4)}")
+
+        city_center_coordinates = get_city_center_coordinates(city)
+
+        if city_center_coordinates is None:
+            center_lat = 0.0
+            center_lon = 0.0
+        else:
+            center_lat, center_lon = city_center_coordinates
+
+        sent_city_center_coordinates = search_context["city_center"]
+        sent_center_lat, sent_center_lon = sent_city_center_coordinates
+        max_grid_resolution_width_meters = search_context["grid_width_meters"]
+        radius_meters = search_context["radius_miles"] * METERS_PER_MILE
+        max_cost_per_city = search_context["max_cost_per_city"]
+        cost_per_search = search_context["cost_per_square"]
+
+        if sent_center_lat != center_lat or sent_center_lon != center_lon:
+            log.print_warn(
+                "Search context does not match current user or city center coordinates: "
+                f"{sent_city_center_coordinates} vs {city_center_coordinates}"
+            )
+
+        # Get the maximum width of the viewport for our search to have good resolution
+        # since places api limits the search results to 20 max regardless of the radius
+        log.print_normal(f"Using city center: {sent_city_center_coordinates}")
+        log.print_normal(f"Using maximum viewpoint width: {max_grid_resolution_width_meters}")
+        log.print_normal(f"Using radius: {radius_meters}")
+        log.print_normal(f"Using max cost per city: {max_cost_per_city}")
+        log.print_normal(f"Using cost per search: {cost_per_search}")
+
+        grid, city_center_coordinates, num_grid_squares, total_cost, new_radius_meters = (
+            get_search_grid_details(
+                city,
+                max_grid_resolution_width_meters,
+                radius_meters,
+                max_cost_per_city,
+                cost_per_search,
+            )
+        )
+
+        data = [
+            {"Parameter": "City", "Value": city},
+            {"Parameter": "City center", "Value": str(city_center_coordinates)},
+            {
+                "Parameter": "Final radius",
+                "Value": f"{new_radius_meters / METERS_PER_MILE:.2f} miles",
+            },
+            {
+                "Parameter": "Grid resolution",
+                "Value": f"{max_grid_resolution_width_meters} meters",
+            },
+            {"Parameter": "Grid size max", "Value": str(num_grid_squares)},
+            {"Parameter": "Grid size actual", "Value": str(len(grid))},
+            {"Parameter": "Total cost", "Value": f"${total_cost:.2f}"},
+        ]
+
+        if len(grid) == 0:
+            log.print_warn("No grid found, not running search")
+            return
+
+        print_simple_rich_table(
+            "Search Grid Parameters",
+            data,
+        )
+
+        def _run_search_thread() -> None:
+            searcher_args = copy.deepcopy(self.searcher_args)
+            searcher_args["email"] = search_context["user"]
+
+            searcher = Searcher(**searcher_args)  # type: ignore
+            searcher.run_search(
+                search_context["user"],
+                f"{city}_search",
+                grid,
+                census_fields=search_context["census_codes"],
+                census_year=search_context["census_year"],
+                time_zone=search_context["time_zone"],
+                and_upload=True,
+                dry_run=self.dry_run,
+            )
+
+        search_thread = threading.Thread(target=_run_search_thread)
+        log.print_ok(f"Starting search thread for {city}")
+        search_thread.start()
+
     def _maybe_run_search_context_jobs(
         self, search_contexts: T.List[too_good_to_go_data_types.SearchContext]
     ) -> None:
         for search_context in search_contexts:
-            if not search_context["trigger_search"]:
-                continue
-
-            city = search_context["city"]
-
-            log.print_bright(f"Found {city} search contexts trigger")
-
-            if self.verbose:
-                log.print_normal(f"{json.dumps(search_context, indent=4)}")
-
-            city_center_coordinates = get_city_center_coordinates(city)
-
-            if city_center_coordinates is None:
-                center_lat = 0.0
-                center_lon = 0.0
-            else:
-                center_lat, center_lon = city_center_coordinates
-
-            sent_city_center_coordinates = search_context["city_center"]
-            sent_center_lat, sent_center_lon = sent_city_center_coordinates
-            max_grid_resolution_width_meters = search_context["grid_width_meters"]
-            radius_meters = search_context["radius_miles"] * METERS_PER_MILE
-            max_cost_per_city = search_context["max_cost_per_city"]
-            cost_per_search = search_context["cost_per_square"]
-
-            if sent_center_lat != center_lat or sent_center_lon != center_lon:
-                log.print_warn(
-                    "Search context does not match current user or city center coordinates: "
-                    f"{sent_city_center_coordinates} vs {city_center_coordinates}"
-                )
-
-            # Get the maximum width of the viewport for our search to have good resolution
-            # since places api limits the search results to 20 max regardless of the radius
-            log.print_normal(f"Using city center: {sent_city_center_coordinates}")
-            log.print_normal(f"Using maximum viewpoint width: {max_grid_resolution_width_meters}")
-            log.print_normal(f"Using radius: {radius_meters}")
-            log.print_normal(f"Using max cost per city: {max_cost_per_city}")
-            log.print_normal(f"Using cost per search: {cost_per_search}")
-
-            grid, city_center_coordinates, num_grid_squares, total_cost, new_radius_meters = (
-                get_search_grid_details(
-                    city,
-                    max_grid_resolution_width_meters,
-                    radius_meters,
-                    max_cost_per_city,
-                    cost_per_search,
-                )
-            )
-
-            data = [
-                {"Parameter": "City", "Value": city},
-                {"Parameter": "City center", "Value": str(city_center_coordinates)},
-                {
-                    "Parameter": "Final radius",
-                    "Value": f"{new_radius_meters / METERS_PER_MILE:.2f} miles",
-                },
-                {
-                    "Parameter": "Grid resolution",
-                    "Value": f"{max_grid_resolution_width_meters} meters",
-                },
-                {"Parameter": "Grid size max", "Value": str(num_grid_squares)},
-                {"Parameter": "Grid size actual", "Value": str(len(grid))},
-                {"Parameter": "Total cost", "Value": f"${total_cost:.2f}"},
-            ]
-
-            print_simple_rich_table(
-                "Search Grid Parameters",
-                data,
-            )
-
-            # TODO(ross): now run the actual search and store/publish the results, will need to
-            # update the firebase db with the results and this will need to be kicked off in
-            # its own thread or process so that we can continue to check for new searches as it
-            # will take a while to run the search and we don't want to block the main loop
-            self.firebase_user.clear_search_context(search_context["user"], search_context["city"])
+            self._run_search_context_job(search_context)
 
     def _check_to_firebase(self) -> None:
         self.firebase_user.health_ping()

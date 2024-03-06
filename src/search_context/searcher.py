@@ -8,7 +8,7 @@ from firebase.user import FirebaseUser
 from search_context.google_places import ADVANCED_FIELDS, DEFAULT_PROMPT, GooglePlacesAPI
 from search_context.us_census import USCensusAPI
 from search_context.util import SearchGrid
-from util import csv_logger, log
+from util import csv_logger, file_util, log
 from util.dict_util import safe_get
 
 MAX_SEARCH_CALLS = 20000
@@ -175,6 +175,7 @@ class Searcher:
         prompt: str,
         places_fields: T.List[str],
         census_fields: T.List[str],
+        census_year: int,
         grid: SearchGrid,
         dry_run: bool,
     ) -> T.Tuple[int, int]:
@@ -199,6 +200,7 @@ class Searcher:
         census_results = self._get_census_results(census_fields, address)
         if census_results:
             common_copy = self.common_data.copy()
+            common_copy["census_year"] = census_year
             census_results.update(common_copy)
             self.census_logger.write(census_results)
 
@@ -208,7 +210,9 @@ class Searcher:
         if dry_run:
             return
         places_header = list(self._get_flatten_places_data({}).keys())
-        census_header = list(self.common_data.keys()) + census_fields if census_fields else []
+        census_header = (
+            list(self.common_data.keys()) + ["census_year"] + census_fields if census_fields else []
+        )
         self.places_logger = csv_logger.CsvLogger(csv_file=self.places_csv, header=places_header)
         self.census_logger = csv_logger.CsvLogger(csv_file=self.census_csv, header=census_header)
 
@@ -218,6 +222,7 @@ class Searcher:
         search_name: str,
         search_grid: T.List[SearchGrid],
         time_zone: T.Any,
+        census_year: int,
         prompt: str = DEFAULT_PROMPT,
         places_fields: T.Optional[T.List[str]] = None,
         census_fields: T.Optional[T.List[str]] = None,
@@ -267,17 +272,36 @@ class Searcher:
                 self._update_common_data(search_name, len(search_grid), grid, time_zone)
 
                 places, census = self._search_a_grid(
-                    prompt, places_fields, census_fields, grid, dry_run
+                    prompt, places_fields, census_fields, census_year, grid, dry_run
                 )
                 places_found += places
                 census_found += census
                 progress.update(task, advance=1)
 
+        self._maybe_upload_results(
+            user, search_name, places_found, census_found, dry_run, and_upload
+        )
+
+    def _maybe_upload_results(
+        self,
+        user: str,
+        search_name: str,
+        places_found: int,
+        census_found: int,
+        dry_run: bool,
+        and_upload: bool,
+    ) -> None:
         if dry_run:
             return
 
         self.firestore_user.clear_search_context(user, search_name)
 
+        tarname = self.census_csv.replace("census", "data").replace(".csv", ".tar.gz")
+
+        # these are likely very large files, so we tar + compress them
+        file_util.create_tar_archive([self.places_csv, self.census_csv], tarname, True)
+
         if and_upload:
-            self.firestore_storage.upload_file_and_get_url(user, self.places_csv, places_found)
-            self.firestore_storage.upload_file_and_get_url(user, self.census_csv, census_found)
+            self.firestore_storage.upload_file_and_get_url(
+                user, tarname, places_found + census_found
+            )

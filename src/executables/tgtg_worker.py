@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+from datetime import datetime
 
 import dotenv
 
@@ -53,6 +54,12 @@ def run_loop(args: argparse.Namespace, bot_pidfile: str) -> None:
     census_api = USCensusAPI(os.environ["CENSUS_API_KEY"])
     google_places_api = GooglePlacesAPI(os.environ["GOOGLE_MAPS_PLACES_API_KEY"])
 
+    date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    log_dir = log.get_logging_dir(PROJECT_NAME)
+    search_results_dir = os.path.join(log_dir, "search_context_results")
+    file_util.make_sure_path_exists(search_results_dir)
+    default_results_csv = os.path.join(search_results_dir, f"search_{date_str}.csv")
+
     backend = TgtgCollectorBackend(
         sender_email,
         tgtg_manager=tgtg_manager,
@@ -62,6 +69,7 @@ def run_loop(args: argparse.Namespace, bot_pidfile: str) -> None:
         google_places_api=google_places_api,
         tgtg_data_dir=args.tgtg_data_dir,
         mode=args.mode,
+        results_csv=default_results_csv,
         verbose=args.verbose,
         dry_run=args.dry_run,
     )

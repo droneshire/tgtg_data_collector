@@ -84,6 +84,7 @@ def parse_args() -> argparse.Namespace:
         default="B01001_001E,B19013_001E",
         help="Census fields to search for",
     )
+    parser.add_argument("--census_year", type=int, default=2022, help="Census year to log")
     parser.add_argument("--city", type=str, required=True, help="City to search in")
     parser.add_argument("--max_cost", type=float, default=1.0, help="Maximum cost")
     parser.add_argument("--cost_per_search", type=float, default=0.04, help="Cost per search")
@@ -175,6 +176,7 @@ def main() -> None:
         user=args.email,
         search_name=f"{args.city} Search",
         search_grid=grid,
+        census_year=args.census_year,
         time_zone=pytz.timezone("America/Los_Angeles"),
         census_fields=args.census_fields.split(","),
         and_upload=args.and_upload,

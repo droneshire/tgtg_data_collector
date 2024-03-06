@@ -20,6 +20,7 @@ class FirebaseStorage:
             auth = credentials.Certificate(credentials_file)
             firebase_admin.initialize_app(auth, {"storageBucket": storage_bucket})
         self.bucket = storage.bucket()
+        self.storage_bucket = storage_bucket
         self.verbose = verbose
 
     def _get_blob_storage_path(self, user: str, file_path: str, num_results: int) -> str:

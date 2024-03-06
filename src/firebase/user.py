@@ -40,6 +40,7 @@ class FirebaseUser:
         if not firebase_admin._apps:  # pylint: disable=protected-access
             auth = credentials.Certificate(credentials_file)
             firebase_admin.initialize_app(auth)
+        self.credentials_file = credentials_file
         self.database = firestore.client()
         self.verbose = verbose
 
@@ -371,15 +372,19 @@ class FirebaseUser:
             if user not in self.database_cache:
                 log.print_warn(f"User {user} not in database cache")
                 return
-
+            census_details = safe_get(
+                dict(self.database_cache[user]), "searchContext.censusDetails".split("."), {}
+            )
             old_db_user = copy.deepcopy(self.database_cache[user])
             db_user = copy.deepcopy(self.database_cache[user])
 
-        log.print_bright(f"Clearing search context for {user} in {city}")
+            log.print_bright(f"Clearing search context for {user} in {city}")
 
-        db_user["searchContext"] = firebase_data_types.NULL_USER["searchContext"]
+            db_user["searchContext"] = firebase_data_types.NULL_USER["searchContext"]
+            # preserve the census details
+            db_user["searchContext"]["censusDetails"] = census_details
 
-        self._maybe_upload_db_cache_to_firestore(user, old_db_user, db_user)
+            self._maybe_upload_db_cache_to_firestore(user, old_db_user, db_user)
 
     def get_search_contexts(self) -> T.List[too_good_to_go_data_types.SearchContext]:
         search_contexts = []
@@ -407,6 +412,9 @@ class FirebaseUser:
                         census_year=context["censusDetails"]["year"],
                         census_source_path=context["censusDetails"]["sourcePath"],
                         census_codes=list(context["censusDetails"]["fields"].keys()),
+                        time_zone=safe_get(
+                            dict(info), "preferences.searchTimeZone.value".split("."), ""
+                        ),
                     )
                     search_contexts.append(search_context)
                 except KeyError as exception:
