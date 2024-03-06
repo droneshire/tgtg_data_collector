@@ -74,6 +74,7 @@ class TgtgCollectorBackend:
             "auto_init": False,
             "verbose": verbose,
         }
+        self.threads: T.Dict[str, threading.Thread] = {}
 
         self.last_query_firebase_time: T.Optional[float] = None
 
@@ -310,7 +311,12 @@ class TgtgCollectorBackend:
         if not search_context["trigger_search"]:
             return
 
+        user = search_context["user"]
         city = search_context["city"]
+
+        if self.threads.get(user) is not None and self.threads[user].is_alive():
+            log.print_warn(f"Search thread for {city} is still running")
+            return
 
         log.print_bright(f"Found {city} search contexts trigger")
 
@@ -383,11 +389,11 @@ class TgtgCollectorBackend:
 
         def _run_search_thread() -> None:
             searcher_args = copy.deepcopy(self.searcher_args)
-            searcher_args["email"] = search_context["user"]
+            searcher_args["email"] = user
 
             searcher = Searcher(**searcher_args)  # type: ignore
             searcher.run_search(
-                search_context["user"],
+                user,
                 f"{city}_search",
                 grid,
                 census_fields=search_context["census_codes"],
@@ -398,9 +404,9 @@ class TgtgCollectorBackend:
             )
 
         if self.run_in_thread:
-            search_thread = threading.Thread(target=_run_search_thread)
+            self.threads[user] = threading.Thread(target=_run_search_thread)
             log.print_ok(f"Starting search thread for {city}")
-            search_thread.start()
+            self.threads[user].start()
         else:
             _run_search_thread()
 
