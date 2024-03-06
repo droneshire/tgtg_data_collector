@@ -284,7 +284,14 @@ class Searcher:
                 progress.update(task, advance=1)
 
         self._maybe_upload_results(
-            user, search_name, places_found, census_found, census_fields, dry_run, and_upload
+            user,
+            search_name,
+            places_found,
+            census_found,
+            census_fields,
+            len(grid),
+            dry_run,
+            and_upload,
         )
 
     def _maybe_upload_results(
@@ -294,6 +301,7 @@ class Searcher:
         places_found: int,
         census_found: int,
         census_codes: T.List[str],
+        num_grids: int,
         dry_run: bool,
         and_upload: bool,
     ) -> None:
@@ -326,12 +334,15 @@ class Searcher:
 
         message = (
             f"Hello!\n\n"
-            f"Search {search_name} found:\n"
+            f"{search_name} results:\n"
             f"- {places_found} Google Places results\n"
             f"- {census_found} census results\n\n"
+            f"Number of grids searched: {num_grids}\n\n"
             f"Census codes used:\n"
             f"- {', '.join(census_codes)}\n\n"
-            f"Download link (which expires in {expire_time_pretty}):\n\n"
+            "Untar/decompress the file to get the CSVs. There is one with the "
+            "Google Places search results in it and another with the census data in it.\n\n"
+            f"Download link (which expires in {expire_time_pretty}):\n"
             f"- {url}\n\n"
             f"Thanks,\n"
             f"Too Good To Go Research Team\n"
