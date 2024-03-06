@@ -1,4 +1,3 @@
-import time
 import typing as T
 from datetime import datetime
 
@@ -120,7 +119,7 @@ class Searcher:
         common_copy = self.common_data.copy()
         common_copy.update(flattened_data)
 
-        return flattened_data
+        return common_copy
 
     def _get_places_results(
         self, prompt: str, fields: T.List[str], grid: SearchGrid
