@@ -9,7 +9,7 @@ from firebase.user import FirebaseUser
 from search_context.google_places import ADVANCED_FIELDS, DEFAULT_PROMPT, GooglePlacesAPI
 from search_context.us_census import USCensusAPI
 from search_context.util import SearchGrid
-from util import csv_logger, email, file_util, log
+from util import csv_logger, email, file_util, log, short_url
 from util.dict_util import safe_get
 from util.fmt_util import get_pretty_seconds
 
@@ -233,6 +233,8 @@ class Searcher:
     ) -> None:
         log.print_bright(f"Starting {search_name} search...")
 
+        self.firestore_user.update_from_firebase()
+
         if places_fields is None:
             places_fields = ADVANCED_FIELDS
 
@@ -310,6 +312,8 @@ class Searcher:
         url = self.firestore_storage.upload_file_and_get_url(
             user, tarname, places_found + census_found
         )
+        url = short_url.shorten_url(url)
+
         log.print_bright(f"Uploaded {tarname} to {url}")
 
         if not validate_email(user):
