@@ -1,6 +1,7 @@
 import os
 import tarfile
 import typing as T
+import zipfile
 
 
 def make_sure_path_exists(path: str, ignore_extension: bool = False) -> None:
@@ -30,3 +31,16 @@ def create_tar_archive(files: T.List[str], tar_name: str, use_base_name: bool = 
             # arcname=file will store the files with the same directory structure as on disk
             # to store files in the root, pass arcname=os.path.basename(file)
             tar.add(file, arcname=os.path.basename(file) if use_base_name else file)
+
+
+def create_zip_archive(files: T.List[str], zip_name: str):
+    """
+    Creates a zip archive from a list of files.
+
+    :param files: A list of file paths to include in the archive.
+    :param zip_name: The name of the zip archive to create.
+    """
+
+    with zipfile.ZipFile(zip_name, "w") as zipf:
+        for file in files:
+            zipf.write(file, os.path.basename(file))

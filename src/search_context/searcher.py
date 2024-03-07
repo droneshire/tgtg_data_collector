@@ -310,20 +310,20 @@ class Searcher:
 
         self.firestore_user.clear_search_context(user, search_name)
 
-        tarname = self.census_csv.replace("census", "data").replace(".csv", ".tar.gz")
+        zip_name = self.census_csv.replace("census", "data").replace(".csv", ".tar.gz")
 
         # these are likely very large files, so we tar + compress them
-        file_util.create_tar_archive([self.places_csv, self.census_csv], tarname, True)
+        file_util.create_zip_archive([self.places_csv, self.census_csv], zip_name)
 
         if not and_upload:
             return
 
         url = self.firestore_storage.upload_file_and_get_url(
-            user, tarname, places_found + census_found
+            user, zip_name, places_found + census_found
         )
         url = short_url.shorten_url(url)
 
-        log.print_bright(f"Uploaded {tarname} to {url}")
+        log.print_bright(f"Uploaded {zip_name} to {url}")
 
         if not validate_email(user):
             log.print_warn("Invalid email address")

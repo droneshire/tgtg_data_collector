@@ -23,6 +23,18 @@ class FirebaseStorage:
         self.storage_bucket = storage_bucket
         self.verbose = verbose
 
+    def _determine_mimetype(self, file_path: str) -> str:
+        if file_path.endswith(".csv"):
+            return "text/csv"
+        if file_path.endswith(".tar.gz"):
+            return "application/gzip"  # or "application/x-gzip"
+        if file_path.endswith(".zip"):
+            return "application/zip"
+        if file_path.endswith(".json"):
+            return "application/json"
+
+        return "application/octet-stream"  # A generic binary stream MIME type
+
     def _get_blob_storage_path(self, user: str, file_path: str, num_results: int) -> str:
         file_name = os.path.basename(file_path)
         file_name_stripped, extension = os.path.splitext(file_name)
@@ -53,7 +65,7 @@ class FirebaseStorage:
     def upload_file_and_get_url(
         self, user: str, file_path: str, num_results: int, verbose: bool = False
     ) -> str:
-        mimetype = "text/csv" if file_path.endswith(".csv") else "application/json"
+        mimetype = self._determine_mimetype(file_path)
 
         storage_path = self._get_blob_storage_path(user, file_path, num_results)
         blob = self.bucket.blob(storage_path)
