@@ -388,10 +388,7 @@ class TgtgCollectorBackend:
         )
 
         def _run_search_thread() -> None:
-            searcher_args = copy.deepcopy(self.searcher_args)
-            searcher_args["email"] = user
-
-            searcher = Searcher(**searcher_args)  # type: ignore
+            searcher = Searcher(**self.searcher_args)  # type: ignore
             searcher.run_search(
                 user,
                 f"{city}_search",
