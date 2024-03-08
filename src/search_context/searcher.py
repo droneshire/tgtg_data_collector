@@ -61,10 +61,39 @@ class Searcher:
         self.places_logger: T.Optional[csv_logger.CsvLogger] = None
         self.census_logger: T.Optional[csv_logger.CsvLogger] = None
 
+    def _get_opening_hours(self, data: T.Dict[str, T.Any]) -> str:
+        day_names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        formatted_hours = []
+
+        regular_opening_hours = safe_get(data, ["regularOpeningHours"], {})
+
+        for period in regular_opening_hours.get("periods", []):
+            open_time = period["open"]
+            close_time = period["close"]
+
+            # Format the opening and closing times as strings
+            open_str = f'{open_time["hour"]:02d}:{open_time["minute"]:02d}'
+            close_str = f'{close_time["hour"]:02d}:{close_time["minute"]:02d}'
+
+            # Map the day number to the day name and create the final string for this period
+            day_str = f'{day_names[open_time["day"]]}: {open_str}-{close_str}'
+
+            # Append the formatted string to the list
+            formatted_hours.append(day_str)
+
+        if not formatted_hours:
+            return "No regular hours"
+
+        # Join the list into a comma-separated string
+        comma_separated_hours = ", ".join(formatted_hours)
+
+        return comma_separated_hours
+
     def _get_flatten_places_data(
         self,
         data: T.Dict[str, T.Any],
     ) -> T.Dict[str, T.Any]:
+        opening_hours = self._get_opening_hours(data)
         flattened_data = {
             "nationalPhoneNumber": safe_get(data, ["nationalPhoneNumber"], ""),
             "formattedAddress": safe_get(data, ["formattedAddress"], ""),
@@ -73,7 +102,7 @@ class Searcher:
             "rating": safe_get(data, ["rating"]),
             "googleMapsUri": safe_get(data, ["googleMapsUri"], ""),
             "websiteUri": safe_get(data, ["websiteUri"], ""),
-            "openNow": safe_get(data, ["regularOpeningHours", "openNow"]),
+            "regularOpeningHours": opening_hours,
             "businessStatus": safe_get(data, ["businessStatus"], ""),
             "userRatingCount": safe_get(data, ["userRatingCount"]),
             "displayName": safe_get(data, ["displayName", "text"], ""),
