@@ -11,7 +11,7 @@ import dotenv
 import pytz
 
 from constants import PROJECT_NAME
-from search_context.google_places import GooglePlacesAPI
+from search_context.google_places import DEFAULT_PROMPTS, GooglePlacesAPI
 from search_context.searcher import MAX_SEARCH_CALLS, Searcher
 from search_context.util import (
     METERS_PER_MILE,
@@ -114,7 +114,7 @@ def get_search_grid(
     google_places = GooglePlacesAPI(google_api_key, verbose=verbose)
     log.print_bright("Finding maximum viewpoint width...")
     max_grid_resolution_width_meters = google_places.find_maximum_viewpoint_width(
-        center_lat, center_lon, "All restaurants"
+        center_lat, center_lon, DEFAULT_PROMPTS[0]
     )
 
     log.print_ok_blue(f"Maximum viewpoint width: {max_grid_resolution_width_meters} meters")

@@ -6,7 +6,7 @@ from validate_email_address import validate_email
 
 from firebase.storage import FirebaseStorage
 from firebase.user import FirebaseUser
-from search_context.google_places import ADVANCED_FIELDS, DEFAULT_PROMPT, GooglePlacesAPI
+from search_context.google_places import ADVANCED_FIELDS, DEFAULT_PROMPTS, GooglePlacesAPI
 from search_context.us_census import USCensusAPI
 from search_context.util import SearchGrid
 from util import csv_logger, email, file_util, log, short_url
@@ -158,21 +158,24 @@ class Searcher:
         return common_copy
 
     def _get_places_results(
-        self, prompt: str, fields: T.List[str], grid: SearchGrid
+        self, prompts: str, fields: T.List[str], grid: SearchGrid
     ) -> T.List[T.Dict[str, T.Any]]:
         data = {"locationRestriction": {"rectangle": grid["viewport"]}}
 
-        try:
-            results = self.google_places.text_search(prompt, fields, data)
-        except Exception as exception:  # pylint: disable=broad-except
-            log.print_fail(
-                f"Could not google places search for "
-                f"{grid['center']['latitude']}, {grid['center']['longitude']}"
-            )
-            log.print_warn(exception)
-            return []
+        locations = []
+        for prompt in prompts:
+            try:
+                results = self.google_places.text_search(prompt, fields, data)
+                if "places" in results:
+                    locations.extend(results["places"])
+            except Exception as exception:  # pylint: disable=broad-except
+                log.print_fail(
+                    f"Could not google places search for {prompt}: "
+                    f"{grid['center']['latitude']}, {grid['center']['longitude']}"
+                )
+                log.print_warn(exception)
 
-        if "places" not in results:
+        if not locations:
             log.print_warn("No results found")
             return []
 
@@ -208,7 +211,7 @@ class Searcher:
 
     def _search_a_grid(
         self,
-        prompt: str,
+        prompts: T.List[str],
         places_fields: T.List[str],
         census_fields: T.List[str],
         census_year: int,
@@ -218,7 +221,7 @@ class Searcher:
         if dry_run or self.census_logger is None or self.places_logger is None:
             return 0, 0
 
-        places = self._get_places_results(prompt, places_fields, grid)
+        places = self._get_places_results(prompts, places_fields, grid)
         address = None
 
         for place in places:
@@ -259,7 +262,7 @@ class Searcher:
         search_grid: T.List[SearchGrid],
         time_zone: T.Any,
         census_year: int,
-        prompt: str = DEFAULT_PROMPT,
+        prompts: T.List[str] = DEFAULT_PROMPTS,
         places_fields: T.Optional[T.List[str]] = None,
         census_fields: T.Optional[T.List[str]] = None,
         and_upload: bool = True,
@@ -311,7 +314,7 @@ class Searcher:
                 self._update_common_data(search_name, len(search_grid), grid, time_zone)
 
                 places, census = self._search_a_grid(
-                    prompt, places_fields, census_fields, census_year, grid, dry_run
+                    prompts, places_fields, census_fields, census_year, grid, dry_run
                 )
                 places_found += places
                 census_found += census
