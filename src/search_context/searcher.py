@@ -14,6 +14,7 @@ from util.dict_util import safe_get
 from util.fmt_util import get_pretty_seconds
 
 MAX_SEARCH_CALLS = 20000
+PROMPT_USED_KEY = "promptUsed"
 
 
 class Searcher:
@@ -100,6 +101,7 @@ class Searcher:
     ) -> T.Dict[str, T.Any]:
         opening_hours = self._get_opening_hours(data)
         flattened_data = {
+            PROMPT_USED_KEY: safe_get(data, [PROMPT_USED_KEY], "UNKNOWN"),
             "nationalPhoneNumber": safe_get(data, ["nationalPhoneNumber"], ""),
             "formattedAddress": safe_get(data, ["formattedAddress"], ""),
             "latitude": safe_get(data, ["location", "latitude"]),
@@ -158,7 +160,7 @@ class Searcher:
         return common_copy
 
     def _get_places_results(
-        self, prompts: str, fields: T.List[str], grid: SearchGrid
+        self, prompts: T.List[str], fields: T.List[str], grid: SearchGrid
     ) -> T.List[T.Dict[str, T.Any]]:
         data = {"locationRestriction": {"rectangle": grid["viewport"]}}
 
@@ -166,8 +168,13 @@ class Searcher:
         for prompt in prompts:
             try:
                 results = self.google_places.text_search(prompt, fields, data)
-                if "places" in results:
-                    locations.extend(results["places"])
+                if "places" not in results:
+                    continue
+
+                for item in results["places"]:
+                    # artificially inject the prompt into the data
+                    item[PROMPT_USED_KEY] = prompt
+                    locations.append(item)
             except Exception as exception:  # pylint: disable=broad-except
                 log.print_fail(
                     f"Could not google places search for {prompt}: "
@@ -262,7 +269,7 @@ class Searcher:
         search_grid: T.List[SearchGrid],
         time_zone: T.Any,
         census_year: int,
-        prompts: T.List[str] = DEFAULT_PROMPTS,
+        prompts: T.Optional[T.List[str]] = None,
         places_fields: T.Optional[T.List[str]] = None,
         census_fields: T.Optional[T.List[str]] = None,
         and_upload: bool = True,
@@ -274,6 +281,9 @@ class Searcher:
 
         if places_fields is None:
             places_fields = ADVANCED_FIELDS
+
+        if not prompts or not isinstance(prompts, list):
+            prompts = DEFAULT_PROMPTS
 
         if census_fields is None:
             census_fields = []
