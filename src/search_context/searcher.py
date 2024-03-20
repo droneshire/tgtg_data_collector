@@ -186,7 +186,7 @@ class Searcher:
             log.print_warn("No results found")
             return []
 
-        return list(results["places"])
+        return locations
 
     def _get_census_results(self, fields: T.List[str], block_address: str) -> T.Dict[str, T.Any]:
         results: T.Dict[str, T.Any] = {}
@@ -357,7 +357,7 @@ class Searcher:
 
         self.firestore_user.clear_search_context(user, search_name)
 
-        zip_name = self.census_csv.replace("census", "data").replace(".csv", ".tar.gz")
+        zip_name = self.census_csv.replace("census", "data").replace(".csv", ".zip")
 
         # these are likely very large files, so we tar + compress them
         file_util.create_zip_archive([self.places_csv, self.census_csv], zip_name)
