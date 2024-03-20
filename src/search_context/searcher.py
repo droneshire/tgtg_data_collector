@@ -33,7 +33,7 @@ class Searcher:
         verbose: bool = False,
     ) -> None:
         self.google_places = GooglePlacesAPI(google_api_key, verbose=verbose)
-        self.us_census = USCensusAPI(us_census_api_key)
+        self.us_census = USCensusAPI(us_census_api_key, verbose=verbose)
         path_name = results_csv.split(".csv")[0]
         date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         self.places_csv = f"{path_name}_places_{date_str}.csv"

@@ -18,9 +18,11 @@ class USCensusAPI:
         api_key: str,
         cache_json_file: str = DEFAULT_CENSUS_FIELDS_JSON_FILE,
         warm_cache: bool = True,
+        verbose: bool = False,
     ):
         self.census = Census(api_key)
         self.api_key = api_key
+        self.verbose = verbose
         self.cache_json_file = cache_json_file
         self.census_fields_cache: T.Dict[str, T.Dict[str, T.Any]] = {}
 
@@ -106,10 +108,11 @@ class USCensusAPI:
             log.print_warn(f"Could not find geo info about for {search_location}")
             return {}
 
-        log.print_normal(f"State: {state}")
-        log.print_normal(f"County: {county}")
-        log.print_normal(f"Tract: {tract}")
-        log.print_normal(f"Block Group: {block_group}")
+        if self.verbose:
+            log.print_normal(f"State: {state}")
+            log.print_normal(f"County: {county}")
+            log.print_normal(f"Tract: {tract}")
+            log.print_normal(f"Block Group: {block_group}")
 
         if not isinstance(fields, list):
             fields = [fields]
@@ -135,7 +138,8 @@ class USCensusAPI:
 
             data[field] = result[0][field]
 
-            log.print_bold(f"Found {self.get_description_for_field(field)}: {data[field]}")
+            if self.verbose:
+                log.print_bold(f"Found {self.get_description_for_field(field)}: {data[field]}")
 
         return data
 
