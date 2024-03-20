@@ -56,6 +56,7 @@ ADVANCED_PROMPT = f"All {'s, '.join(list(t for t in TYPES))}"
 DEFAULT_PROMPTS = [
     "All restaurants",  # This first one in the list is the default used for optimization purposes
     "All bakeries",
+    "All grocery stores",
     "All coffee shops",
 ]
 
