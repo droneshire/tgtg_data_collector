@@ -62,21 +62,26 @@ class Searcher:
         self.census_logger: T.Optional[csv_logger.CsvLogger] = None
 
     def _get_opening_hours(self, data: T.Dict[str, T.Any]) -> str:
-        day_names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        day_names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Unknown"]
         formatted_hours = []
 
         regular_opening_hours = safe_get(data, ["regularOpeningHours"], {})
 
         for period in regular_opening_hours.get("periods", []):
-            open_time = period["open"]
-            close_time = period["close"]
+            open_time = period.get("open", "")
+            close_time = period.get("close", "")
+            open_day = open_time.get("day", len(day_names) - 1)
 
             # Format the opening and closing times as strings
-            open_str = f'{open_time["hour"]:02d}:{open_time["minute"]:02d}'
-            close_str = f'{close_time["hour"]:02d}:{close_time["minute"]:02d}'
+            open_str = (
+                f'{open_time["hour"]:02d}:{open_time["minute"]:02d}' if open_time else "Unknown"
+            )
+            close_str = (
+                f'{close_time["hour"]:02d}:{close_time["minute"]:02d}' if close_time else "Unknown"
+            )
 
             # Map the day number to the day name and create the final string for this period
-            day_str = f'{day_names[open_time["day"]]}: {open_str}-{close_str}'
+            day_str = f"{day_names[open_day]}: {open_str}-{close_str}"
 
             # Append the formatted string to the list
             formatted_hours.append(day_str)
