@@ -1,3 +1,4 @@
+# pylint: disable=duplicate-code
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -184,16 +185,15 @@ class SearchContextTest(unittest.TestCase):
         cost_per_search = 25.0
         verbose = False
 
-        # pylint: disable=duplicate-code
         result = get_search_grid_details(
             city,
             max_grid_resolution_width_meters,
             radius_meters,
             max_cost_per_city,
             cost_per_search,
-            verbose,
+            prompts=["test"],
+            verbose=verbose,
         )
-        # pylint: enable=duplicate-code
 
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 5)
@@ -208,3 +208,81 @@ class SearchContextTest(unittest.TestCase):
         mock_get_city_center_coordinates.assert_called_once_with(city)
         self.assertEqual(mock_calculate_cost_from_results.call_count, 2)
         mock_get_grid_coordinates.assert_called_once()
+
+    @patch("search_context.util.get_city_center_coordinates")
+    @patch("search_context.util.get_grid_coordinates")
+    def test_prompts_adjust_cost(
+        self,
+        mock_get_grid_coordinates,
+        mock_get_city_center_coordinates,
+    ) -> None:
+        # Mock return values for dependencies
+        mock_get_city_center_coordinates.return_value = (
+            40.7128,
+            -74.0060,
+        )  # Example: New York City center
+        mock_get_grid_coordinates.return_value = [
+            MagicMock(spec=SearchGrid)
+        ] * 8  # Mock grid of 8 squares
+
+        city = "New York"
+        max_grid_resolution_width_meters = 100.0
+        radius_meters = 5000.0
+        max_cost_per_city = 20000.0
+        cost_per_search = 1.0
+        verbose = False
+
+        prompts1 = ["test"]
+
+        result = get_search_grid_details(
+            city,
+            max_grid_resolution_width_meters,
+            radius_meters,
+            max_cost_per_city,
+            cost_per_search,
+            prompts=prompts1,
+            verbose=verbose,
+        )
+
+        _, _, number_of_squares, total_cost, _ = result
+
+        expected_squares = 10000
+        expected_cost = 10000.0
+
+        self.assertEqual(total_cost, expected_cost)
+        self.assertEqual(number_of_squares, expected_squares)
+
+        prompts2 = ["test", "tests"]
+
+        result = get_search_grid_details(
+            city,
+            max_grid_resolution_width_meters,
+            radius_meters,
+            max_cost_per_city,
+            cost_per_search,
+            prompts=prompts2,
+            verbose=verbose,
+        )
+        _, _, number_of_squares, total_cost, _ = result
+        self.assertEqual(total_cost, expected_cost * len(prompts2) / len(prompts1))
+        self.assertEqual(number_of_squares, expected_squares)
+
+        max_cost_per_city = 200.0
+        cost_per_search = 25.0
+
+        result = get_search_grid_details(
+            city,
+            max_grid_resolution_width_meters,
+            radius_meters,
+            max_cost_per_city,
+            cost_per_search,
+            prompts=prompts2,
+            verbose=verbose,
+        )
+
+        grid, _, number_of_squares, total_cost, new_radius_meters = result
+
+        self.assertEqual(len(grid), 0)
+        self.assertEqual(number_of_squares, 0)
+        self.assertEqual(new_radius_meters, 0)
+        self.assertEqual(total_cost, 20000)

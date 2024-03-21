@@ -247,7 +247,7 @@ def get_search_grid_details(
 
         if new_radius_meters <= step_size_meters:
             log.print_fail("Radius is too small for the cost")
-            break
+            return ([], city_center_coordinates, 0, total_cost, 0)
 
         new_radius_meters -= step_size_meters
 
