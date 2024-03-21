@@ -1,3 +1,4 @@
+import gc
 import typing as T
 from datetime import datetime
 
@@ -329,6 +330,8 @@ class Searcher:
                 places_found += places
                 census_found += census
                 progress.update(task, advance=1)
+
+                gc.collect()
 
         self._maybe_upload_results(
             user,

@@ -1,3 +1,4 @@
+import gc
 import json
 import os
 import random
@@ -449,3 +450,4 @@ class TgtgCollectorBackend:
         self._check_and_run_search_and_email()
         self._check_and_maybe_run_search_context_job()
         self._check_to_firebase()
+        gc.collect()
