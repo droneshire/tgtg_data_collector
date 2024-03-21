@@ -11,9 +11,10 @@ import dotenv
 import pytz
 
 from constants import PROJECT_NAME
-from search_context.google_places import DEFAULT_PROMPTS, GooglePlacesAPI
+from search_context.google_places import GooglePlacesAPI
 from search_context.searcher import MAX_SEARCH_CALLS, Searcher
 from search_context.util import (
+    DEFAULT_PROMPTS,
     METERS_PER_MILE,
     SearchGrid,
     get_city_center_coordinates,

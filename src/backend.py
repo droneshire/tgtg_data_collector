@@ -358,6 +358,7 @@ class TgtgCollectorBackend:
                 radius_meters,
                 max_cost_per_city,
                 cost_per_search,
+                verbose=self.verbose,
             )
         )
 

@@ -6,9 +6,9 @@ from validate_email_address import validate_email
 
 from firebase.storage import FirebaseStorage
 from firebase.user import FirebaseUser
-from search_context.google_places import ADVANCED_FIELDS, DEFAULT_PROMPTS, GooglePlacesAPI
+from search_context.google_places import ADVANCED_FIELDS, GooglePlacesAPI
 from search_context.us_census import USCensusAPI
-from search_context.util import SearchGrid
+from search_context.util import DEFAULT_PROMPTS, SearchGrid
 from util import csv_logger, email, file_util, log, short_url
 from util.dict_util import safe_get
 from util.fmt_util import get_pretty_seconds

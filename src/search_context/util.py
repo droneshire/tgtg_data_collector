@@ -9,6 +9,13 @@ from util import log
 METERS_PER_MILE = 1609.34
 METERS_PER_KILOMETER = 1000.0
 
+DEFAULT_PROMPTS = [
+    "All restaurants",  # This first one in the list is the default used for optimization purposes
+    "All bakeries",
+    "All grocery stores",
+    "All coffee shops",
+]
+
 
 class Coordinates(T.TypedDict):
     latitude: float
@@ -207,6 +214,7 @@ def get_search_grid_details(
     radius_meters: float,
     max_cost_per_city: float,
     cost_per_search: float,
+    prompts: T.Optional[T.List[str]] = None,
     verbose: bool = False,
 ) -> T.Tuple[T.List[SearchGrid], T.Tuple[float, float], int, float, float]:
     city_center_coordinates = get_city_center_coordinates(city)
@@ -225,6 +233,11 @@ def get_search_grid_details(
     log.print_normal(f"Optimizing {city} for cost...")
     new_radius_meters = radius_meters
     step_size_meters = METERS_PER_KILOMETER
+
+    if not prompts:
+        prompts = DEFAULT_PROMPTS
+
+    cost_per_search = cost_per_search * len(prompts)
     while True:
         number_of_squares, total_cost = calculate_cost_from_results(
             max_grid_resolution_width_meters, cost_per_search, new_radius_meters, verbose=False
