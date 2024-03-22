@@ -238,15 +238,25 @@ class TgtgManager:
         if did_fail:
             self._handle_captcha_failure()
 
-    def search_region(self, region: data_types.Region) -> data_types.GetItemResponse:
+    def search_region(
+        self,
+        region: data_types.Region,
+        results_handler: T.Callable[[data_types.GetItemResponse], None],
+    ) -> int:
+        """
+        Search a region for items and call the results_handler with the data.
+
+        We allow for a results_handler to be passed in so that the caller can handle the results
+        since they may want to write the data to a file, or do some other processing on the data
+        on an item by item basis since the data can be quite large.
+        """
         if self.client is None:
             log.print_fail("Client not initialized!")
-            return data_types.GetItemResponse({"results": []})
-
-        # attempt to read and concatenate all pages
-        data = data_types.GetItemResponse({"results": []})
+            return 0
 
         log.print_bold("Searching region...")
+
+        num_results = 0
 
         for page in range(1, self.MAX_PAGES_PER_REGION + 1):
             log.print_normal(f"Searching page {page} out of max {self.MAX_PAGES_PER_REGION}")
@@ -264,10 +274,15 @@ class TgtgManager:
             if not new_data or not isinstance(new_data, list):
                 break
 
-            data["results"].extend(new_data)
+            num_results += len(new_data)
+
+            data = data_types.GetItemResponse({"results": new_data})
+
+            results_handler(data)
+
             time.sleep(random.uniform(5, 20))
 
-        return T.cast(data_types.GetItemResponse, data)
+        return num_results
 
     def write_data_to_json(
         self, get_item_response: data_types.GetItemResponse, json_file: str, time_zone: T.Any

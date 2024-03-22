@@ -276,25 +276,29 @@ class TgtgCollectorBackend:
             longitude=region_dict["longitude"],
             radius=region_dict["radius"],
         )
-        results: too_good_to_go_data_types.GetItemResponse = self.tgtg_manager.search_region(
-            region=region
+
+        def _handle_search_results(
+            results: too_good_to_go_data_types.GetItemResponse,
+        ) -> None:
+            num_results = len(results["results"])
+
+            log.print_normal_arrow(f"Received {num_results} results")
+
+            if num_results == 0:
+                log.print_warn("No results found, not saving anything")
+            else:
+                if search["store_raw_data"]:
+                    tgtg_data_json_file = self._get_tgtg_data_file(search["user"], uuid)
+                    self.tgtg_manager.write_data_to_json(results, tgtg_data_json_file, timezone)
+
+                tgtg_data_csv_file = self._get_tgtg_csv_file(
+                    search["user"], self._get_file_basename(search, uuid)
+                )
+                self.tgtg_manager.write_data_to_csv(results, tgtg_data_csv_file, timezone)
+
+        num_results = self.tgtg_manager.search_region(
+            region=region, results_handler=_handle_search_results
         )
-
-        num_results = len(results["results"])
-
-        log.print_normal(f"Found {num_results} results")
-
-        if num_results == 0:
-            log.print_warn("No results found, not saving anything")
-        else:
-            if search["store_raw_data"]:
-                tgtg_data_json_file = self._get_tgtg_data_file(search["user"], uuid)
-                self.tgtg_manager.write_data_to_json(results, tgtg_data_json_file, timezone)
-
-            tgtg_data_csv_file = self._get_tgtg_csv_file(
-                search["user"], self._get_file_basename(search, uuid)
-            )
-            self.tgtg_manager.write_data_to_csv(results, tgtg_data_csv_file, timezone)
 
         # TODO(ross): this is pretty inefficient, we potentially update the firebase
         # database for each search rather than just doing it user by user at the end, but

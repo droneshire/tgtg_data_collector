@@ -5,7 +5,6 @@ Executable that runs the searcher on a grid search.
 import argparse
 import os
 import typing as T
-from datetime import datetime
 
 import dotenv
 import pytz
@@ -39,11 +38,10 @@ def parse_args() -> argparse.Namespace:
         "--google-api_key", type=str, default=google_places_api_key, help="Google Places API key"
     )
 
-    datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_dir = log.get_logging_dir(PROJECT_NAME)
     results_dir = os.path.join(log_dir, "search_context_results")
     file_util.make_sure_path_exists(results_dir)
-    default_results_csv = os.path.join(results_dir, f"search_context_{datetime_str}.csv")
+    default_results_csv = os.path.join(results_dir, "search_context.csv")
     parser.add_argument(
         "--results_csv",
         type=str,
