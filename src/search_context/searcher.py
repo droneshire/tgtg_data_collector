@@ -293,6 +293,37 @@ class Searcher:
         self.places_logger = csv_logger.CsvLogger(csv_file=self.places_csv, header=places_header)
         self.census_logger = csv_logger.CsvLogger(csv_file=self.census_csv, header=census_header)
 
+    def _check_and_maybe_use_stamp_info(self, expected_search_name: str) -> T.Optional[int]:
+        stamp_info = self._get_stamp_file()
+        if not stamp_info:
+            return None
+
+        search_name = stamp_info.get("search_name", "")
+        if search_name != expected_search_name:
+            log.print_warn(
+                f"Stamp file search name {search_name} does not "
+                f"match provided search name {expected_search_name}"
+            )
+            return None
+
+        places_csv = stamp_info.get("places_file_name", "")
+        census_csv = stamp_info.get("csv_file_name", "")
+        for file in [places_csv, census_csv]:
+            if not os.path.isfile(file):
+                log.print_warn(f"Stamp file {file} does not exist")
+                return None
+
+        search_grid_start_index = stamp_info.get("search_num", None)
+
+        if not search_grid_start_index or not search_grid_start_index.isdigit():
+            log.print_warn("Stamp file search number is invalid")
+            return None
+
+        self.places_csv = places_csv
+        self.census_csv = census_csv
+
+        return int(search_grid_start_index)
+
     def run_search(
         self,
         user: str,
@@ -336,6 +367,14 @@ class Searcher:
 
             log.print_warn(f"Clamping search grid at maximum of {MAX_SEARCH_CALLS}")
             search_grid = search_grid[:MAX_SEARCH_CALLS]
+
+        maybe_start_index = self._check_and_maybe_use_stamp_info(search_name)
+        if search_grid_start_index <= 0 and maybe_start_index:
+            search_grid_start_index = maybe_start_index
+            log.print_ok(
+                f"Resuming search from grid index {search_grid_start_index} with "
+                f"places CSV {self.places_csv} and census CSV {self.census_csv}"
+            )
 
         self._setup_csv_loggers(census_fields, dry_run)
 
