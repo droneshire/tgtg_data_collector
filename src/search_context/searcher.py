@@ -1,4 +1,6 @@
 import gc
+import json
+import os
 import typing as T
 from datetime import datetime
 
@@ -16,6 +18,10 @@ from util.fmt_util import get_pretty_seconds
 
 MAX_SEARCH_CALLS = 20000
 PROMPT_USED_KEY = "promptUsed"
+
+STAMP_FILE = "searcher.stamp"
+
+StampFile = T.Dict[str, T.Any]
 
 
 class Searcher:
@@ -200,6 +206,23 @@ class Searcher:
             log.print_warn(exception)
         return results
 
+    def _update_stamp_file(self, search_name: str, search_num: int) -> None:
+        stamp_info: StampFile = {
+            "search_name": search_name,
+            "search_num": search_num,
+            "csv_file_name": self.census_logger.csv_file if self.census_logger else "",
+            "places_file_name": self.places_logger.csv_file if self.places_logger else "",
+        }
+        with open(STAMP_FILE, "w", encoding="utf-8") as stamp_file:
+            json.dump(stamp_info, stamp_file)
+
+    def _get_stamp_file(self) -> StampFile:
+        try:
+            with open(STAMP_FILE, "r", encoding="utf-8") as stamp_file:
+                return dict(json.load(stamp_file))
+        except FileNotFoundError:
+            return {}
+
     def _update_common_data(
         self,
         search_name: str,
@@ -343,7 +366,11 @@ class Searcher:
                 census_found += census
                 progress.update(task, advance=1)
 
+                self._update_stamp_file(search_name, self.common_data["search_num"])  # type: ignore
+
                 gc.collect()
+
+        os.remove(STAMP_FILE)
 
         self._maybe_upload_results(
             user,

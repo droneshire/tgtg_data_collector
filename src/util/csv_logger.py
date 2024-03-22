@@ -12,12 +12,20 @@ from util import log
 
 class CsvLogger:
     def __init__(self, csv_file: str, header: T.List[str], dry_run=False, verbose=False) -> None:
-        self.csv_file = csv_file
+        self._csv_file = csv_file
         self.header = header
         self.col_map = {col.lower(): i for i, col in enumerate(header)}
         self.dry_run = dry_run
         self._write_header_if_needed()
         self.verbose = verbose
+
+    @property
+    def csv_file(self) -> str:
+        return self._csv_file
+
+    @csv_file.setter
+    def csv_file(self, value: str) -> None:
+        self._csv_file = value
 
     def write(self, data: T.Dict[str, T.Any]) -> None:
         if self.dry_run:
