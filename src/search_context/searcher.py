@@ -237,15 +237,16 @@ class Searcher:
         local_time = date_localized - local_offset
         date_formated = local_time.strftime("%Y-%m-%d %H:%M:%S %Z")
 
+        if self.common_data.get("search_num", 0) == 0:
+            self.common_data["search_num"] = default_search_num
+
         self.common_data["timestamp"] = date_formated
         self.common_data["search_name"] = search_name
         self.common_data["search_latitude"] = grid["center"]["latitude"]
         self.common_data["search_longitude"] = grid["center"]["longitude"]
         self.common_data["square_width_meters"] = grid["width_meters"]
         self.common_data["grid_size"] = search_size
-        self.common_data["search_num"] = (
-            self.common_data.get("search_num", 0) + default_search_num + 1  # type: ignore
-        )
+        self.common_data["search_num"] = self.common_data.get("search_num", 0) + 1  # type: ignore
 
     def _search_a_grid(
         self,
