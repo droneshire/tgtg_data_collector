@@ -242,7 +242,7 @@ def get_search_grid_details(
         number_of_squares, total_cost = calculate_cost_from_results(
             max_grid_resolution_width_meters, cost_per_search, new_radius_meters, verbose=verbose
         )
-        if total_cost <= max_cost_per_city and total_cost > 0:
+        if 0 < total_cost <= max_cost_per_city:
             break
 
         if total_cost <= 0:

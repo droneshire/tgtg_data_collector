@@ -220,7 +220,9 @@ class Searcher:
         self.common_data["search_longitude"] = grid["center"]["longitude"]
         self.common_data["square_width_meters"] = grid["width_meters"]
         self.common_data["grid_size"] = search_size
-        self.common_data["search_num"] = self.common_data.get("search_num", 0) + default_search_num + 1  # type: ignore
+        self.common_data["search_num"] = (
+            self.common_data.get("search_num", 0) + default_search_num + 1  # type: ignore
+        )
 
     def _search_a_grid(
         self,
