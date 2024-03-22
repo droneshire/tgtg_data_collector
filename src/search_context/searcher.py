@@ -214,7 +214,7 @@ class Searcher:
             "places_file_name": self.places_logger.csv_file if self.places_logger else "",
         }
         with open(STAMP_FILE, "w", encoding="utf-8") as stamp_file:
-            json.dump(stamp_info, stamp_file)
+            json.dump(stamp_info, stamp_file, indent=4)
 
     def _get_stamp_file(self) -> StampFile:
         try:
@@ -316,7 +316,7 @@ class Searcher:
 
         search_grid_start_index = stamp_info.get("search_num", None)
 
-        if not search_grid_start_index or not search_grid_start_index.isdigit():
+        if not search_grid_start_index or not isinstance(search_grid_start_index, int):
             log.print_warn("Stamp file search number is invalid")
             return None
 
