@@ -240,10 +240,15 @@ def get_search_grid_details(
     cost_per_search = cost_per_search * len(prompts)
     while True:
         number_of_squares, total_cost = calculate_cost_from_results(
-            max_grid_resolution_width_meters, cost_per_search, new_radius_meters, verbose=False
+            max_grid_resolution_width_meters, cost_per_search, new_radius_meters, verbose=verbose
         )
-        if total_cost <= max_cost_per_city:
+        if total_cost <= max_cost_per_city and total_cost > 0:
             break
+
+        if total_cost <= 0:
+            step_size_meters /= 2
+            new_radius_meters += step_size_meters
+            continue
 
         if new_radius_meters <= step_size_meters:
             log.print_fail("Radius is too small for the cost")

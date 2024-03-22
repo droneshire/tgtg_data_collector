@@ -38,6 +38,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--google-api_key", type=str, default=google_places_api_key, help="Google Places API key"
     )
+
     datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_dir = log.get_logging_dir(PROJECT_NAME)
     results_dir = os.path.join(log_dir, "search_context_results")
@@ -48,9 +49,6 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default=default_results_csv,
         help="CSV file to write results to",
-    )
-    parser.add_argument(
-        "--email", type=str, default=test_email, help="Email address to send notifications to"
     )
     parser.add_argument(
         "--credentials_file",
@@ -77,21 +75,28 @@ def parse_args() -> argparse.Namespace:
         help="Clamp the number of search calls at the maximum",
     )
     parser.add_argument(
-        "--radius_miles", type=float, default=20.0, help="Radius in miles to search"
-    )
-    parser.add_argument(
         "--census_fields",
         type=str,
         default="B01001_001E,B19013_001E",
         help="Census fields to search for",
     )
     parser.add_argument("--census_year", type=int, default=2022, help="Census year to log")
+    parser.add_argument("--max_cost", type=float, default=10.0, help="Maximum cost")
+    parser.add_argument("--cost_per_search", type=float, default=0.1, help="Cost per search")
+    parser.add_argument(
+        "--grid_start_index", type=int, default=0, help="Index to start the grid search at"
+    )
+    # non-optional arguments
     parser.add_argument("--city", type=str, required=True, help="City to search in")
-    parser.add_argument("--max_cost", type=float, default=1.0, help="Maximum cost")
-    parser.add_argument("--cost_per_search", type=float, default=0.04, help="Cost per search")
+    parser.add_argument(
+        "--radius_miles", type=float, default=20.0, help="Radius in miles to search"
+    )
+    parser.add_argument(
+        "--email", type=str, default=test_email, help="Email address to send notifications to"
+    )
+    parser.add_argument("--and_upload", action="store_true", help="Upload results to Firebase")
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
     parser.add_argument("--dry_run", action="store_true", help="Dry run")
-    parser.add_argument("--and_upload", action="store_true", help="Upload results to Firebase")
     return parser.parse_args()
 
 
@@ -128,7 +133,7 @@ def get_search_grid(
             radius_meters,
             max_cost,
             cost_per_search,
-            verbose=False,
+            verbose=verbose,
         )
     )
     # pylint: enable=duplicate-code
@@ -178,7 +183,12 @@ def main() -> None:
     )
 
     grid = get_search_grid(
-        args.city, args.radius_miles, args.max_cost, args.cost_per_search, args.google_api_key
+        args.city,
+        args.radius_miles,
+        args.max_cost,
+        args.cost_per_search,
+        args.google_api_key,
+        verbose=args.verbose,
     )
 
     searcher.run_search(
@@ -188,6 +198,7 @@ def main() -> None:
         census_year=args.census_year,
         time_zone=pytz.timezone("America/Los_Angeles"),
         census_fields=args.census_fields.split(","),
+        search_grid_start_index=args.grid_start_index,
         and_upload=args.and_upload,
         dry_run=args.dry_run,
     )

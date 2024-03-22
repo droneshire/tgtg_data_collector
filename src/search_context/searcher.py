@@ -201,7 +201,12 @@ class Searcher:
         return results
 
     def _update_common_data(
-        self, search_name: str, search_size: int, grid: SearchGrid, time_zone: T.Any
+        self,
+        search_name: str,
+        search_size: int,
+        grid: SearchGrid,
+        time_zone: T.Any,
+        default_search_num: int = 0,
     ) -> None:
         date_now = datetime.now()
         date_localized = time_zone.localize(date_now)
@@ -215,7 +220,7 @@ class Searcher:
         self.common_data["search_longitude"] = grid["center"]["longitude"]
         self.common_data["square_width_meters"] = grid["width_meters"]
         self.common_data["grid_size"] = search_size
-        self.common_data["search_num"] = self.common_data.get("search_num", 0) + 1  # type: ignore
+        self.common_data["search_num"] = self.common_data.get("search_num", 0) + default_search_num + 1  # type: ignore
 
     def _search_a_grid(
         self,
@@ -273,6 +278,7 @@ class Searcher:
         prompts: T.Optional[T.List[str]] = None,
         places_fields: T.Optional[T.List[str]] = None,
         census_fields: T.Optional[T.List[str]] = None,
+        search_grid_start_index: int = 0,
         and_upload: bool = True,
         dry_run: bool = False,
     ) -> None:
@@ -316,13 +322,17 @@ class Searcher:
             TimeElapsedColumn(),
             TimeRemainingColumn(),
         ) as progress:
-            task = progress.add_task("Grid Search", total=len(search_grid))
+            task = progress.add_task(
+                "Grid Search", total=len(search_grid[search_grid_start_index:])
+            )
 
             places_found = 0
             census_found = 0
 
-            for grid in search_grid:
-                self._update_common_data(search_name, len(search_grid), grid, time_zone)
+            for grid in search_grid[search_grid_start_index:]:
+                self._update_common_data(
+                    search_name, len(search_grid), grid, time_zone, search_grid_start_index
+                )
 
                 places, census = self._search_a_grid(
                     prompts, places_fields, census_fields, census_year, grid, dry_run

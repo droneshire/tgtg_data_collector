@@ -415,6 +415,7 @@ class FirebaseUser:
                         time_zone=safe_get(
                             dict(info), "preferences.searchTimeZone.value".split("."), ""
                         ),
+                        start_index=context["gridStartIndex"],
                     )
                     search_contexts.append(search_context)
                 except KeyError as exception:

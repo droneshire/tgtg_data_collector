@@ -73,6 +73,7 @@ class SearchContext(T.TypedDict):
     autoUpload: bool
     maxCostPerCity: float
     costPerSquare: float
+    gridStartIndex: int
     censusDetails: CensusDetails
 
 
@@ -116,6 +117,7 @@ NULL_USER = User(
         autoUpload=False,
         maxCostPerCity=0.0,
         costPerSquare=0.0,
+        gridStartIndex=0,
         censusDetails=CensusDetails(
             year=0,
             sourcePath="",

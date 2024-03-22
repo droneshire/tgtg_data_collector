@@ -397,6 +397,7 @@ class TgtgCollectorBackend:
                 census_fields=search_context["census_codes"],
                 census_year=search_context["census_year"],
                 time_zone=pytz.timezone(search_context["time_zone"]),
+                search_grid_start_index=search_context["start_index"],
                 and_upload=True,
                 dry_run=self.dry_run,
             )

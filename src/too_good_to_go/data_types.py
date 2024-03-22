@@ -16,6 +16,7 @@ class SearchContext(TypedDict):
     census_source_path: str
     census_codes: List[str]
     time_zone: str
+    start_index: int
 
 
 class Region(TypedDict):
