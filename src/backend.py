@@ -318,7 +318,7 @@ class TgtgCollectorBackend:
         user = search_context["user"]
         city = search_context["city"]
 
-        if self.threads.get(user) is not None and self.threads[user].is_alive():
+        if self.threads.get(user, None) is not None and self.threads[user].is_alive():
             log.print_warn(f"Search thread for {city} is still running")
             return
 
@@ -405,7 +405,7 @@ class TgtgCollectorBackend:
                 and_upload=True,
                 dry_run=self.dry_run,
             )
-            self.threads[user] = None
+            del self.threads[user]
 
         if self.run_in_thread:
             self.threads[user] = threading.Thread(target=_run_search_thread, daemon=True)
