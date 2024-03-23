@@ -232,6 +232,9 @@ class TgtgManager:
             status_code = exception.args[0]
             if status_code == 403:
                 did_fail = True
+            elif status_code == 504:
+                log.print_fail("Gateway Timeout!")
+                time.sleep(5)
             else:
                 raise exception
 
