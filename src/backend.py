@@ -405,6 +405,7 @@ class TgtgCollectorBackend:
                 and_upload=True,
                 dry_run=self.dry_run,
             )
+            self.threads[user] = None
 
         if self.run_in_thread:
             self.threads[user] = threading.Thread(target=_run_search_thread, daemon=True)
