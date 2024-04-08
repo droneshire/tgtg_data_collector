@@ -53,6 +53,10 @@ test_run:
 run_search:
 	$(RUN_PY) search_context.executables.run_searcher $(ARGS)
 
+upgrade: install
+	pip install --upgrade $$(pip freeze | awk '{split($$0, a, "=="); print a[1]}')
+	pip freeze > requirements.txt
+
 clean:
 	rm -rf *.pickle
 	rm -rf ./venv
